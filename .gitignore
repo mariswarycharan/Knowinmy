@@ -48,3 +48,8 @@ Thumbs.db
 *.mov
 *.wmv
 
+venv/
+
+db.sqlite3
+media/
+new_dataset.csv

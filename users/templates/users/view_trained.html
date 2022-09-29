@@ -1,0 +1,25 @@
+{% extends 'users/index.html' %}
+{% block body %}
+<div class="container mt-5">
+    <div class="row">
+        {% for trained_asana in trained_asanas%}
+        <div class="col-2 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{trained_asana.name}}</h5>
+                    <p class="card-text">No of Postures :{{trained_asana.no_of_postures}}</p>
+                    <a href="{% url 'view-posture' trained_asana.id %}" class="btn btn-primary">Edit/Train</a>
+                </div>
+            </div>
+        </div>
+        {% endfor%}
+    </div>
+    <div class="container">
+        <a href="{% url 'create-asana' %}"><button type="button" class="btn btn-primary">Train a New Asana</button></a>
+    </div>
+
+</div>
+
+
+
+{% endblock %}

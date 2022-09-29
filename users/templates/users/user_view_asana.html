@@ -1,0 +1,18 @@
+{% extends 'users/index.html' %}
+{% block body %}
+<div class="container mt-5">
+    <div class="row">
+        {% for asana in asanas %}
+        <div class="col-2 mb-3">
+            <div class="card">  
+                <div class="card-body">
+                    <h5 class="card-title">{{asana.name}}</h5>
+                    <p class="card-text">No of Postures :{{asana.no_of_postures}}</p>
+                    <a href="{% url 'user-view-posture' asana.id %}" class="btn btn-primary">Edit/Train</a>
+                </div>
+            </div>
+        </div>
+        {% endfor%}
+    </div>
+</div>
+{% endblock %}

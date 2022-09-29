@@ -1,0 +1,28 @@
+{% extends 'users/index.html' %}
+{% block body %}
+<div class="container mt-5">
+    <div class="row">
+        {% for posture in postures %}
+        <div class="col-2 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{posture.name}}</h5>
+                    <p class="card-text">Asana Name :{{posture.asana.name}}</p>
+                    <a  onclick="loadTrain({{posture.id}})" class="btn btn-primary">Train</a>
+                </div>
+            </div>
+        </div>
+        {% endfor%}
+        <div id = "video" class="container">        
+        </div>
+    </div>
+    
+</div>
+
+<script>
+    function loadTrain(posture_id){
+        video = document.getElementById("video")
+        video.innerHTML = `<img src="/train_model/${posture_id}">`
+    }
+</script>
+{% endblock %}
