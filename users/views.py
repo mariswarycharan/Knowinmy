@@ -150,7 +150,7 @@ class TrainVideoCamera(object):
             frame = cv2.putText(frame, str(self.ab), org, font, fontScale, 
                             color, thickness, cv2.LINE_AA, False)
             self.results = pose.process(frame)
-            self.height_frame , self.width_frame,_ = self.frame.shape
+            self.height_frame , self.width_frame,_ = frame.shape
             if self.results.pose_landmarks:
                 mp_draw.draw_landmarks(frame,self.results.pose_landmarks,my_pose.POSE_CONNECTIONS,
                                 landmark_drawing_spec=mp_draw.DrawingSpec(color=(255,255,255),thickness=3, circle_radius=3),
@@ -274,6 +274,7 @@ class TestVideoCamera(object):
         _, jpeg = cv2.imencode('.jpg', image)
         return jpeg.tobytes()
     
+
     def calculate_angle(self,landmark1,landmark2,landmark3):
         self.x1,self.y1 = landmark1
         self.x2,self.y2 = landmark2
@@ -286,8 +287,15 @@ class TestVideoCamera(object):
             
         # cv2.circle(frame,(round(self.x1*width_frame),round(self.y1*height_frame)),radius=20,color=(180,20,40),thickness=3)
         return round(self.angle)
-                
 
+    def changing_colour(self,frame,angle,dataset_column,codi1_x,codi1_y,codi2_x,codi2_y,codi3_x,codi3_y,pose_name_display):
+                if angle in dataset_column:
+                    cv2.line(img=frame,pt1=(codi1_x,codi1_y),pt2=(codi2_x,codi2_y),color=(0,140,0),thickness=5)
+                    cv2.line(img=frame,pt1=(codi2_x,codi2_y),pt2=(codi3_x,codi3_y),color=(0,140,0),thickness=5)
+                else:
+                    cv2.line(img=frame,pt1=(codi1_x,codi1_y),pt2=(codi2_x,codi2_y),color=(0,0,255),thickness=5)
+                    cv2.line(img=frame,pt1=(codi2_x,codi2_y),pt2=(codi3_x,codi3_y),color=(0,0,255),thickness=5)
+                    # print("wrongly done part of your body :",pose_name_display)   
     def update(self):
         while True:
             # if (self.created_at + timedelta(seconds=60)) < datetime.now():
@@ -297,7 +305,7 @@ class TestVideoCamera(object):
             (grabbed, frame) = self.video.read()
             frame=cv2.resize(frame,(749, 720))
             frame = cv2.flip(frame,1)
-            cv2.line(frame, pt1=(30,650),pt2=(600,650),color=(255,0,0),thickness=3)
+            # cv2.line(frame, pt1=(30,650),pt2=(600,650),color=(255,0,0),thickness=3)
             frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
 
         
@@ -311,11 +319,12 @@ class TestVideoCamera(object):
                                         mp_styles.get_default_hand_landmarks_style(),
                                         mp_styles.get_default_hand_connections_style())
             
+            
             if self.results.pose_landmarks:
                 
-                mp_draw.draw_landmarks(frame,self.results.pose_landmarks,my_pose.POSE_CONNECTIONS,
-                                    landmark_drawing_spec=mp_draw.DrawingSpec(color=(255,255,255),thickness=3, circle_radius=3),
-                                    connection_drawing_spec=mp_draw.DrawingSpec(color=(49,125,237) ,thickness=2, circle_radius=2))
+                # mp_draw.draw_landmarks(frame,self.results.pose_landmarks,my_pose.POSE_CONNECTIONS,
+                #                     landmark_drawing_spec=mp_draw.DrawingSpec(color=(255,255,255),thickness=3, circle_radius=3),
+                #                     connection_drawing_spec=mp_draw.DrawingSpec(color=(255,255,255) ,thickness=3, circle_radius=3))
                 self.body_landmarks = self.results.pose_landmarks.landmark
                 
                 # write the function find angle between three points
@@ -378,20 +387,71 @@ class TestVideoCamera(object):
                     round(self.right_knee) in list(self.each_step_data[str(self.each_columns[8])]) and round(self.left_knee) in list(self.each_step_data[str(self.each_columns[9])])):
                     self.sum_each_angle = self.right_hand_angle2_ellow + self.left_hand_angle1_ellow + self.right_hand_angle4_shoulder + self.left_hand_angle3_shoulder + self.right_hip + self.left_hip + self.right_knee + self.left_knee
                     self.accuracy = (self.sum_each_angle/self.sum_mode)*100
+                    # mp_draw.draw_landmarks(frame,self.results.pose_landmarks,my_pose.POSE_CONNECTIONS,
+                    #                 landmark_drawing_spec=mp_draw.DrawingSpec(color=(170, 255, 0),thickness=3, circle_radius=3),
+                    #                 connection_drawing_spec=mp_draw.DrawingSpec(color=(170, 255, 0) ,thickness=3, circle_radius=3))
                     if self.accuracy > 100:
                         self.accuracy = self.accuracy - 100
                         self.accuracy = 100 - self.accuracy
                         print("your accuracy of ",str(self.each_columns[0]),"is",self.accuracy)
 
                     self.count_results += 1
-                    if self.count_results == 30 :
+                    if self.count_results == 60 :
                         self.result_display += "successfully done"
                         self.result_display += str(self.each_columns[0])
                         break
                         
                         
                 self.mode_list.clear()
+
+                self.changing_colour(frame,round(self.right_hand_angle2_ellow),list(self.each_step_data[str(self.each_columns[2])]),
+                        round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_SHOULDER.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_SHOULDER.value].y*self.height_frame),
+                        round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_ELBOW.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_ELBOW.value].y *self.height_frame),
+                        round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_WRIST.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_WRIST.value].y*self.height_frame),
+                        self.each_columns[2])
+        
+                self.changing_colour(frame,round(self.left_hand_angle1_ellow),list(self.each_step_data[str(self.each_columns[3])]),
+                                round(self.body_landmarks[my_pose.PoseLandmark.LEFT_SHOULDER.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.LEFT_SHOULDER.value].y*self.height_frame),
+                                round(self.body_landmarks[my_pose.PoseLandmark.LEFT_ELBOW.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.LEFT_ELBOW.value].y *self.height_frame),
+                                round(self.body_landmarks[my_pose.PoseLandmark.LEFT_WRIST.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.LEFT_WRIST.value].y*self.height_frame),
+                                self.each_columns[3])
                 
+                self.changing_colour(frame,round(self.right_hand_angle4_shoulder),list(self.each_step_data[str(self.each_columns[4])]),
+                                round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_ELBOW.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_ELBOW.value].y *self.height_frame),
+                                round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_SHOULDER.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_SHOULDER.value].y*self.height_frame),
+                                round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_HIP.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_HIP.value].y*self.height_frame),
+                                self.each_columns[4])
+            
+                self.changing_colour(frame,round(self.left_hand_angle3_shoulder),list(self.each_step_data[str(self.each_columns[5])]),
+                                round(self.body_landmarks[my_pose.PoseLandmark.LEFT_ELBOW.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.LEFT_ELBOW.value].y *self.height_frame),
+                                round(self.body_landmarks[my_pose.PoseLandmark.LEFT_SHOULDER.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.LEFT_SHOULDER.value].y*self.height_frame),
+                                round(self.body_landmarks[my_pose.PoseLandmark.LEFT_HIP.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.LEFT_HIP.value].y*self.height_frame),
+                                self.each_columns[5])
+                
+                self.changing_colour(frame,round(self.right_hip),list(self.each_step_data[str(self.each_columns[6])]),
+                                round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_SHOULDER.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_SHOULDER.value].y*self.height_frame),
+                                round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_HIP.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_HIP.value].y*self.height_frame),
+                                round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_KNEE.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_KNEE.value].y *self.height_frame),
+                                self.each_columns[6])
+                
+                self.changing_colour(frame, round(self.left_hip),list(self.each_step_data[str(self.each_columns[7])]),
+                                round(self.body_landmarks[my_pose.PoseLandmark.LEFT_SHOULDER.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.LEFT_SHOULDER.value].y*self.height_frame),
+                                round(self.body_landmarks[my_pose.PoseLandmark.LEFT_HIP.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.LEFT_HIP.value].y*self.height_frame),
+                                round(self.body_landmarks[my_pose.PoseLandmark.LEFT_KNEE.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.LEFT_KNEE.value].y *self.height_frame),
+                                self.each_columns[7])
+                                    
+                self.changing_colour(frame,round(self.right_knee),list(self.each_step_data[str(self.each_columns[8])]),
+                                round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_HIP.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_HIP.value].y*self.height_frame),
+                                round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_KNEE.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_KNEE.value].y *self.height_frame),
+                                round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_ANKLE.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.RIGHT_ANKLE.value].y*self.height_frame),
+                                self.each_columns[8])
+                
+                self.changing_colour(frame,round(self.left_knee),list(self.each_step_data[str(self.each_columns[9])]),
+                                round(self.body_landmarks[my_pose.PoseLandmark.LEFT_HIP.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.LEFT_HIP.value].y*self.height_frame),
+                                round(self.body_landmarks[my_pose.PoseLandmark.LEFT_KNEE.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.LEFT_KNEE.value].y *self.height_frame),
+                               round(self.body_landmarks[my_pose.PoseLandmark.LEFT_ANKLE.value].x*self.width_frame),round(self.body_landmarks[my_pose.PoseLandmark.LEFT_ANKLE.value].y*self.height_frame),
+                                self.each_columns[9])
+                        
                 #  x and y for changing each step dataset
                 self.x += 10
                 self.y += 10
@@ -406,7 +466,7 @@ class TestVideoCamera(object):
 
 def test_gen(camera):
     while True:
-        if camera.count_results == 30:
+        if camera.count_results == 60:
             yield(b'--frame\r\n'
                 b'Content-Type: image/jpeg\r\n\r\n' + b'\r\n\r\n')
             del camera
