@@ -1,22 +1,43 @@
-{% extends 'users/index.html' %}
+{% extends 'index.html' %}
 {% block body %}
 <div class="container mt-5">
+    <div class="container">
+        <a href="{% url 'create-asana' %}"><button type="button" class="btn btn-primary mb-5">Create</button></a>
+    </div>
     <div class="row">
+        <p class="col-12">Your Asanas</p>
         {% for trained_asana in trained_asanas%}
-        <div class="col-2 mb-3">
-            <div class="card">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
-                    <h5 class="card-title">{{trained_asana.name}}</h5>
-                    <p class="card-text">No of Postures :{{trained_asana.no_of_postures}}</p>
-                    <a href="{% url 'view-posture' trained_asana.id %}" class="btn btn-primary">Edit/Train</a>
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="font-weight-bold text-primary mb-1">
+                                {{trained_asana.name}}</div>
+                            <div class="mb-0 font-weight-bold text-gray-800">{{trained_asana.no_of_postures}} postures</div>
+                        </div>
+                        <div class="col-auto">
+                            <a href="{% url 'view-posture' trained_asana.id %}">
+                            <div class="col-auto">
+                                <i class="fas fa-arrow-right fa-2x text-gray-300"></i>
+                            </div>
+                            </a>
+                            <!-- <a href="{% url 'view-posture' trained_asana.id %}"  class="btn btn-secondary btn-icon-split">
+                                <span class="icon text-white-50">
+                                    <i class="fas fa-arrow-right"></i>
+                                </span>
+                                <span class="text">Edit/Train</span> -->
+                            </a>
+                        </div>
+                    </div>
+                    
+                    
                 </div>
             </div>
         </div>
         {% endfor%}
     </div>
-    <div class="container">
-        <a href="{% url 'create-asana' %}"><button type="button" class="btn btn-primary">Train a New Asana</button></a>
-    </div>
+    
 
 </div>
 

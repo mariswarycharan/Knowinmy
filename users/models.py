@@ -3,7 +3,7 @@ from tabnanny import verbose
 from django.db import models
 from django.contrib.auth.models import User
 
-
+#enable disable
 class Asana(models.Model):
     name = models.CharField(max_length=100,verbose_name="Asana Name")
     no_of_postures = models.PositiveIntegerField(verbose_name="Number of Postures")
@@ -12,11 +12,13 @@ class Asana(models.Model):
     last_modified_at = models.DateTimeField(verbose_name="Last Modified At")
 
 
-#to add : created_by, created_at, is_active
+
+#to add : created_by, created_at, is_active last modified, last_modified by, question bank
 class Posture(models.Model):
     name = models.CharField(max_length=100,verbose_name="Posture Name")
-    dataset = models.FileField(null=True,blank=True,upload_to="media/")
+    dataset = models.FileField(null=True,blank=True,upload_to="")
     asana = models.ForeignKey(Asana,related_name="related_postures",on_delete=models.CASCADE)
     order = models.PositiveIntegerField(verbose_name="Posture Order")
+    snap_shot = models.ImageField(verbose_name="Snap Shot", upload_to="images/", null=True, blank=True)
 
 

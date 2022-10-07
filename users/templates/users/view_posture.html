@@ -1,28 +1,70 @@
-{% extends 'users/index.html' %}
+{% extends 'index.html' %}
 {% block body %}
 <div class="container mt-5">
     <div class="row">
         {% for posture in postures %}
-        <div class="col-2 mb-3">
-            <div class="card">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
-                    <h5 class="card-title">{{posture.name}}</h5>
-                    <p class="card-text">Asana Name :{{posture.asana.name}}</p>
-                    <a  onclick="loadTrain({{posture.id}})" class="btn btn-primary">Train</a>
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="font-weight-bold text-primary mb-1">
+                                {{posture.name}}</div>
+                            <div class="mb-0 font-weight-bold text-gray-800">{% if posture.dataset %} Trained {% else %} Not Trained {% endif %}</div>
+                        </div>
+                        <div class="col-auto">
+                            <a href="#" onclick="loadTrain({{posture.id}})" >
+                            <div class="col-auto">
+                                <i class="fas fa-arrow-right fa-2x text-gray-300"></i>
+                            </div>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    
                 </div>
             </div>
         </div>
         {% endfor%}
-        <div id = "video" class="container">        
-        </div>
+        
     </div>
-    
+    <div id = "video" class="container d-flex align-items-center justify-content-center">        
+    </div>
+    <br><br><br>
 </div>
 
 <script>
     function loadTrain(posture_id){
+        let count = 10
         video = document.getElementById("video")
-        video.innerHTML = `<img src="/train_model/${posture_id}">`
+        let interval = setInterval(function(){
+            video.innerHTML = `<p style="font-size:8rem;">${count}</p>`
+            if (count == 0){
+                video.innerHTML = `<img src="/train_model/${posture_id}">
+                <div id="snap_shot" class="m-5">
+                    </div>`
+                clearInterval(interval)
+                takeSnapShot()
+            }
+            count -= 1
+        },1000)
+        
+    }
+
+    function takeSnapShot(){
+        let count = 10
+        snap = document.getElementById("snap_shot")
+        let interval = setInterval(function(){
+            snap.innerHTML = `Snap shot will be taken in <br><p style="font-size:8rem;">${count}</p>`
+            if (count == 0){
+                snap.innerHTML = `<p style="font-size:3rem;">Snap Taken</p>`
+                clearInterval(interval)
+                setTimeout(function(){
+                    snap.innerHTML = ""
+                },5000)
+            }
+            count -= 1
+        },1000)
     }
 </script>
 {% endblock %}

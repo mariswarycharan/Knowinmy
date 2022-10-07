@@ -1,14 +1,28 @@
-{% extends 'users/index.html' %}
+{% extends 'index.html' %}
 {% block body %}
 <div class="container mt-5">
     <div class="row">
         {% for asana in asanas %}
-        <div class="col-2 mb-3">
-            <div class="card">  
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
-                    <h5 class="card-title">{{asana.name}}</h5>
-                    <p class="card-text">No of Postures :{{asana.no_of_postures}}</p>
-                    <a href="{% url 'user-view-posture' asana.id %}" class="btn btn-primary">Edit/Train</a>
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="font-weight-bold text-primary mb-1">
+                                {{asana.name}}</div>
+                            <div class="mb-0 font-weight-bold text-gray-800">{{asana.no_of_postures}} postures</div>
+                        </div>
+                        <div class="col-auto">
+                            <a href="{% url 'user-view-posture' asana.id %}">
+                            <div class="col-auto">
+                                <i class="fas fa-arrow-right fa-2x text-gray-300"></i>
+                            </div>
+                            </a>
+                            
+                        </div>
+                    </div>
+                    
+                    
                 </div>
             </div>
         </div>

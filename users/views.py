@@ -1,6 +1,6 @@
-from tkinter.messagebox import NO
 from django.shortcuts import render,redirect
 from django.http.response import HttpResponse
+from django.http import JsonResponse
 from django.views.decorators import gzip
 from django.http import StreamingHttpResponse
 import cv2
@@ -13,7 +13,7 @@ import mediapipe as mp
 import pandas as pd
 from datetime import datetime,timedelta
 
-from yoga.settings import BASE_DIR
+from yoga.settings import BASE_DIR, MEDIA_ROOT
 from .models import *
 from pathlib import Path
 from django.conf import settings
@@ -21,6 +21,7 @@ import statistics
 from .forms import *
 from django.contrib.auth import authenticate,login
 from django.utils import timezone
+from PIL import Image
 
 def user_login(request):
     if request.method == "POST":
@@ -121,7 +122,7 @@ class TrainVideoCamera(object):
             #     break
             if self.ab == 500:
                 asana_name = Posture.objects.get(id=self.posture_id).asana.name
-                print(self.dataset_pose.to_csv(Path("./media/" + asana_name + "_" + self.name_of_step+".csv")))
+                # print(self.dataset_pose.to_csv(Path("./media/" + asana_name + "_" + self.name_of_step+".csv")))
                 posture = Posture.objects.get(id=self.posture_id)
                 posture.dataset.name =  asana_name + "_" + self.name_of_step+".csv"
                 posture.save()
@@ -129,7 +130,14 @@ class TrainVideoCamera(object):
             self.ab += 1
             
             (grabbed, frame) = self.video.read()
-            frame=cv2.resize(frame,(749, 720))
+            if self.ab == 240:
+                posture = Posture.objects.get(id=self.posture_id)
+                name = f"images/{posture.id}.png"
+                img = Image.fromarray(frame)
+                img.save(os.path.join(MEDIA_ROOT,name))
+                posture.snap_shot.name = name
+                posture.save()
+            # frame=cv2.resize(frame,(749, 720))
             frame = cv2.flip(frame,1)
             frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
             font = cv2.FONT_HERSHEY_SIMPLEX
@@ -252,7 +260,7 @@ hands = myhand.Hands(max_num_hands = 2)
 class TestVideoCamera(object):
     def __init__(self,posture_id):
         self.posture_id = posture_id 
-        print(Posture.objects.get(id=posture_id).dataset.path)
+        # print(Posture.objects.get(id=posture_id).dataset.path)
         self.df = pd.read_csv(Posture.objects.get(id=posture_id).dataset.path)
         self.df = self.df.loc[:,~self.df.columns.str.contains("^Unnamed")]
         self.ini_col = self.df.columns
@@ -303,7 +311,7 @@ class TestVideoCamera(object):
             #     break
             
             (grabbed, frame) = self.video.read()
-            frame=cv2.resize(frame,(749, 720))
+            # frame=cv2.resize(frame,(749, 720))
             frame = cv2.flip(frame,1)
             # cv2.line(frame, pt1=(30,650),pt2=(600,650),color=(255,0,0),thickness=3)
             frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
@@ -485,4 +493,9 @@ def test_live_feed(request,posture_id):
         pass
 
 
-
+def get_posture(request,posture_id):
+    if request.method == "GET":
+        link = str(Posture.objects.get(id=posture_id).snap_shot.url)
+        return JsonResponse({"url":link})
+    else:
+        return JsonResponse({"error": "expected GET method"})

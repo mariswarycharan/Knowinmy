@@ -1,28 +1,60 @@
-{% extends 'users/index.html' %}
+{% extends 'index.html' %}
 {% block body %}
 <div class="container mt-5">
     <div class="row">
         {% for posture in postures %}
-        <div class="col-2 mb-3">
-            <div class="card">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
-                    <h5 class="card-title">{{posture.name}}</h5>
-                    <p class="card-text">Asana Name :{{posture.asana.name}}</p>
-                    <a  onclick="loadTest({{posture.id}})" class="btn btn-primary">Practice</a>
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="font-weight-bold text-primary mb-1">
+                                {{posture.name}}</div>
+                            <div class="mb-0 font-weight-bold text-gray-800">{% if posture.dataset %} Trained {% else %} Not Trained {% endif %}</div>
+                        </div>
+                        <div class="col-auto">
+                            <a href="#" onclick="loadTest({{posture.id}})" >
+                            <div class="col-auto">
+                                <i class="fas fa-arrow-right fa-2x text-gray-300"></i>
+                            </div>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    
                 </div>
             </div>
         </div>
         {% endfor%}
-        <div id = "video" class="container">        
-        </div>
+        
     </div>
+        <div id = "video" class="row">        
+        </div>
+        
     
+    <br><br>
 </div>
 
 <script>
     function loadTest(posture_id){
+        let count = 10
         video = document.getElementById("video")
-        video.innerHTML = `<img src="/test_model/${posture_id}">`
+        let interval = setInterval( async function(){
+            video.innerHTML = `<p style="text-align:center;font-size:8rem; display:block;" class="col-12">${count}</p>`
+            if (count == 0){
+                const response = await fetch(`/get_posture/${posture_id}`)
+                const json_response = await response.json()
+                url = json_response.url
+                video.innerHTML = `<img class="col-6"src="/test_model/${posture_id}">
+                <div id="snap_shot" class="col-6">
+                <img src="${url}"
+                </div>
+                `
+                clearInterval(interval)
+            }
+            count -= 1
+        },1000)
+        
     }
 </script>
 {% endblock %}
