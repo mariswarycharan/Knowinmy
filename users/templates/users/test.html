@@ -1,0 +1,104 @@
+{% extends 'index.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% block style %}
+<script src="{% static 'js/opencv/opencv.js'%}"></script>
+{% endblock %}
+{% block body %}
+<textarea id="chat-log" cols="100" rows="20"></textarea><br>
+<input id="chat-message-input" type="text" size="100"><br>
+<input id="chat-message-submit" type="button" value="Send">
+<video id="videoInput"></video>
+<canvas id="canvasFrame"></canvas>
+<script>
+    const roomName = "hello"
+    console.log("helloooooooooooooo ")
+    const chatSocket = new WebSocket(
+        'ws://'
+        + window.location.host
+        + '/ws/chat/'
+        + roomName
+        + '/'
+    );
+
+    // chatSocket.onclose = function(e) {
+    //     console.error('Chat socket closed unexpectedly');
+    // };
+
+    // chatSocket.onmessage = function(e) {
+    //     const data = JSON.parse(e.data);
+    //     document.querySelector('#chat-log').value += (data.message + '\n');
+    // };
+    
+    let video = document.getElementById("videoInput"); // video is the id of video tag
+    let canvasFrame = document.getElementById("canvasFrame"); // canvasFrame is the id of <canvas>
+    let context = canvasFrame.getContext("2d");
+    let src = new cv.Mat(1000, 1000, cv.CV_8UC4);
+    let dst = new cv.Mat(1000, 1000, cv.CV_8UC1);
+    const FPS = 30;
+    navigator.mediaDevices.getUserMedia({ video:{width:640,height:480}})
+        .then(function(stream) {
+            
+            video.srcObject = stream;
+            console.log("helooooooooooo lopbuku")
+            video.play();
+            function processVideo() {
+                let begin = Date.now();
+                
+                context.drawImage(video, 0, 0, 1000, 1000);
+                
+                // console.log(context.getImageData(0, 0, 1000, 1000).data)
+                // cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
+                try {
+                    console.log("Iam innnnnnnn")
+                    dataURL = canvasFrame.toDataURL();
+                    console.log(dataURL)
+                    // base64 = getBase64StringFromDataURL(dataURL);
+                    // console.log(base64);
+                    // test = context.getImageData(0, 0, 1000, 1000)
+                    // chatSocket.send(JSON.stringify({
+                    // 'message': `${context.getImageData(0,0,1000, 1000).data}`
+                    // }));
+                    console.log("sent")
+                }
+                catch(err){
+
+                }
+                cv.imshow("canvasFrame", src); // canvasOutput is the id of another <canvas>;
+                // schedule next one.
+                let delay = 1000/FPS - (Date.now() - begin);
+                setTimeout(processVideo, delay);
+            }
+            // schedule first one.
+            setTimeout(processVideo, 0);
+        })
+        .catch(function(err) {
+            console.log("An error occurred! " + err);
+        });
+
+    
+
+
+    
+
+
+
+    document.querySelector('#chat-message-input').focus();
+    document.querySelector('#chat-message-input').onkeyup = function(e) {
+        if (e.keyCode === 13) {  // enter, return
+            document.querySelector('#chat-message-submit').click();
+        }
+    };
+
+    document.querySelector('#chat-message-submit').onclick = function(e) {
+        const messageInputDom = document.querySelector('#chat-message-input');
+        const message = messageInputDom.value;
+        chatSocket.send(JSON.stringify({
+            'message': message
+        }));
+        messageInputDom.value = '';
+    };
+    
+</script>
+
+{% endblock %}

@@ -22,7 +22,7 @@
     <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
 
     <!-- in order to style in a specific file -->
-    {% block style %}
+    {% block head %}
     {% endblock%} 
 
 </head>
@@ -120,7 +120,7 @@
 
                 </nav>
                 <!-- End of Topbar -->   
-                {%block body %}
+                {% block body %}
                 {% endblock %}
             
             <!-- Footer -->

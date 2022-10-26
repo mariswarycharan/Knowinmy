@@ -1,4 +1,5 @@
 {% extends 'index.html' %}
+{% load crispy_forms_tags %}
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.1/control_utils.js"
@@ -8,37 +9,20 @@
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.2/pose.js" crossorigin="anonymous"></script>
 {% endblock %}
 {% block body %}
-<div class="container mt-5">
-    <div class="row">
-        {% for posture in postures %}
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="font-weight-bold text-primary mb-1">
-                                {{posture.name}}</div>
-                            <div class="mb-0 font-weight-bold text-gray-800">{% if posture.dataset %} Trained {% else %}
-                                Not Trained {% endif %}</div>
-                        </div>
-                        <div class="col-auto">
-                            <a href="#" onclick="loadTest({{posture.id}})">
-                                <div class="col-auto">
-                                    <i class="fas fa-arrow-right fa-2x text-gray-300"></i>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {% endfor%}
+<div class="container">
+    <form method="post" action="">
+        {% csrf_token %}
+        {{form|crispy}}
+        <input class="btn btn-primary" type="submit" name="meta_details" value="Submit">
+    </form>
+    <br><br>
+    <div id="video" class="container d-flex align-items-center justify-content-center">
+        <input class="btn btn-primary" onclick="trainer()" type="button" value="Train">
     </div>
     <video class="input_video5" style="display:none;"></video>
     <div id="train" class="card shadow mb-4 mt-4" style="display:none;">
         <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">KnowInMy - Test</h6>
+            <h6 class="m-0 font-weight-bold text-primary">KnowInMy - Train</h6>
         </div>
         <div class="card-body">
             <div class="row">
@@ -50,21 +34,18 @@
                 </div>
             </div>
         </div>
+        <form id="dataset_form" action="" method="post" hidden>
+            {% csrf_token %}
+            <input type="text" name="snapshot" id="snap_form">
+            <input type="text" name="dataset" id="dataset">
+        </form>
+
+
     </div>
     <div style="visibility: hidden;" class="control5"></div>
 </div>
 <script>
-    var array
-    var snap_shot;
-    async function loadTest(posture_id) {
-        response = await fetch(`/get_posture_dataset?posture_id=${posture_id}`)
-        response = await response.json()
-        array = await response["dataset"]
-        console.log(await array)
-        snap_shot = await response["snapshot"]
-        await tester()
-    }
-    function tester() {
+    function trainer() {
         document.getElementById("train").style.display = "block";
         document.getElementById("train").scrollIntoView({ behavior: "smooth" })
         const video5 = document.getElementsByClassName('input_video5')[0];
@@ -73,8 +54,9 @@
         const canvasCtx5 = out5.getContext('2d');
         const pi = Math.PI
         const fpsControl = new FPS();
-        var score = 0
-        var isBegin = false
+        var array = []
+        var count = 0
+        var isSnap = false
         snapshot = document.getElementById("snapshot")
 
         function zColor(data) {
@@ -97,8 +79,15 @@
             fpsControl.tick();
             canvasCtx5.save();
             canvasCtx5.clearRect(0, 0, out5.width, out5.height);
-            canvasCtx5.font = "30px Arial";
-            canvasCtx5.fillText(score,10,50);
+            if (isSnap) {
+                snapp = document.getElementById('snap')
+                const snap = snapp.getContext('2d');
+                console.log("results" + results.image)
+                snap.drawImage(results.image, 0, 0, out5.width, out5.height)
+                snap.save()
+                document.getElementById("snap_form").value = snapp.toDataURL().replace(/^data:image\/(png|jpg);base64,/, "")
+                isSnap = false
+            }
             canvasCtx5.drawImage(
                 results.image, 0, 0, out5.width, out5.height);
             drawConnectors(
@@ -135,30 +124,20 @@
             left_wrist_cordinate = Math.round(results.poseLandmarks[16].x * out5.width)
             right_wrist_cordinate = Math.round(results.poseLandmarks[15].x * out5.width)
             two_hand_distance = Math.abs(right_wrist_cordinate - left_wrist_cordinate)
-            calculated = [two_hand_distance, left_hand_elbow, right_hand_elbow, left_shoulder,right_shoulder, left_hip, right_hip, left_knee, right_knee]
-            checker = []
-            if (isBegin){
-                for(i=0;i<array.length;i++){
-                    if (array[i].includes(calculated[i])){
-                        checker.push(true)
-                    }    
-                    else{
-                        checker.push(false)
-                        break
-                    }
-                }
-                if (checker.every(check => check === true)){
-                    score += 1
-                    console.log(score)
-                }
-            }
-            if (score == 150) {
+            console.log([two_hand_distance, left_hand_elbow, right_hand_elbow, left_shoulder,
+                right_shoulder, left_hip, right_hip, left_knee, right_knee])
+            array.push([two_hand_distance, left_hand_elbow, right_hand_elbow, left_shoulder,
+                right_shoulder, left_hip, right_hip, left_knee, right_knee])
+            count += 1
+            if (count == 300) {
+                document.getElementById("dataset").value = JSON.stringify(array)
                 const stream = video5.srcObject;
                 const tracks = stream.getTracks();
                 tracks.forEach((track) => {
                     track.stop();
                 });
                 document.getElementById("train").style.display = "none"
+                document.getElementById("dataset_form").submit()
             }
             drawLandmarks(
                 canvasCtx5,
@@ -175,6 +154,7 @@
                 Object.values(POSE_LANDMARKS_NEUTRAL)
                     .map(index => results.poseLandmarks[index]),
                 { color: zColor, fillColor: '#AAAAAA' });
+
             canvasCtx5.restore();
         }
 
@@ -225,17 +205,19 @@
                 pose.setOptions(options);
             });
         number = 5
-        myInterval = setInterval(() => {
+        myInterval  = setInterval(() => {
             snapshot.innerHTML = `
-            <p>The snapshot will be taken in ${number}</p>
-            `
+                <p>The snapshot will be taken in ${number}</p>
+                `
             number -= 1
             if (number == -2) {
-                snapshot.innerHTML = `<img src=${snap_shot} id="snap" width="480px" height="480px">`
-                isBegin = true
+                isSnap = true
+                snapshot.innerHTML = `<canvas id="snap" width="480px" height="480px"></canvas>`
                 clearInterval(myInterval)
             }
         }, 1000)
     }
+
 </script>
+
 {% endblock %}

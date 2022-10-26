@@ -1,4 +1,5 @@
 from distutils.command.upload import upload
+from email.policy import default
 from tabnanny import verbose
 from django.db import models
 from django.contrib.auth.models import User
@@ -10,15 +11,23 @@ class Asana(models.Model):
     created_by = models.ForeignKey(User,related_name="teaching_asans",on_delete=models.CASCADE,verbose_name="Created By")
     created_at = models.DateTimeField(verbose_name="Created At")
     last_modified_at = models.DateTimeField(verbose_name="Last Modified At")
+    is_active = models.BooleanField(default=True)
 
 
 
 #to add : created_by, created_at, is_active last modified, last_modified by, question bank
 class Posture(models.Model):
+    step_no = models.PositiveIntegerField(verbose_name="Step No")
     name = models.CharField(max_length=100,verbose_name="Posture Name")
     dataset = models.FileField(null=True,blank=True,upload_to="")
     asana = models.ForeignKey(Asana,related_name="related_postures",on_delete=models.CASCADE)
-    order = models.PositiveIntegerField(verbose_name="Posture Order")
+    # order = models.PositiveIntegerField(verbose_name="Posture Order")
     snap_shot = models.ImageField(verbose_name="Snap Shot", upload_to="images/", null=True, blank=True)
+    last_modified_at = models.DateTimeField(verbose_name="Last Modified At",null=True)
+    first_trained_at = models.DateTimeField(verbose_name="First Trained At",null=True)
+    # last_modified_by = models.ForeignKey(User,related_name="trained_postures",on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=True)
+
+
 
 

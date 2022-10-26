@@ -2,10 +2,8 @@ from turtle import right
 from unittest import result
 import cv2 
 from cv2 import VideoCapture
-from lightgbm import cv
 from matplotlib import image
 import mediapipe as mp
-from nbformat import read
 import numpy as np
 import math
 import time
@@ -13,9 +11,10 @@ import pandas as pd
 import statistics
 # from train_data import dataset_pose
 
-df = pd.read_csv(r"H:\yoga\media\test 3_Step-1.csv")
+df = pd.read_csv(r"H:\yoga\media\test_1.csv")
 df = df.loc[:,~df.columns.str.contains("^Unnamed")]
 ini_col = df.columns
+print(ini_col)
 mode_list = []
 count_results = 0
 
@@ -109,11 +108,13 @@ while True:
         if two_hand_distance < 0:
             two_hand_distance *= -1
         # from total dataset spliting the each step dataset 
-        
+        # print("asdfasdfa -----",df.columns[x:y])
         each_step_data = df[df.columns[x:y]]
         # print(each_step_data)
         # columns of the each step dataset
         each_columns = list(each_step_data.columns)
+        print("paaru da veneaa------",list(each_step_data[str(each_columns[2])]))
+        # print("each step data ----", each_columns)
         # prinQt(len(each_columns))
         for j in each_columns[1:]:
             mode1 = statistics.mode(list(each_step_data[str(j)]))
@@ -146,6 +147,7 @@ while True:
         x += 10
         y += 10
         if y > len(ini_col):
+            print("exe")
             x = 0
             y = 10
     # cv2.putText(frame,str(result_display),(50,100),cv2.FONT_HERSHEY_PLAIN,3,(0,255,0),3,cv2.LINE_AA)    

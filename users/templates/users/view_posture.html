@@ -13,7 +13,7 @@
                             <div class="mb-0 font-weight-bold text-gray-800">{% if posture.dataset %} Trained {% else %} Not Trained {% endif %}</div>
                         </div>
                         <div class="col-auto">
-                            <a href="#" onclick="loadTrain({{posture.id}})" >
+                            <a href="{% url 'edit-posture' posture.id %}" > 
                             <div class="col-auto">
                                 <i class="fas fa-arrow-right fa-2x text-gray-300"></i>
                             </div>
@@ -28,43 +28,7 @@
         {% endfor%}
         
     </div>
-    <div id = "video" class="container d-flex align-items-center justify-content-center">        
-    </div>
-    <br><br><br>
+    
 </div>
 
-<script>
-    function loadTrain(posture_id){
-        let count = 10
-        video = document.getElementById("video")
-        let interval = setInterval(function(){
-            video.innerHTML = `<p style="font-size:8rem;">${count}</p>`
-            if (count == 0){
-                video.innerHTML = `<img src="/train_model/${posture_id}">
-                <div id="snap_shot" class="m-5">
-                    </div>`
-                clearInterval(interval)
-                takeSnapShot()
-            }
-            count -= 1
-        },1000)
-        
-    }
-
-    function takeSnapShot(){
-        let count = 10
-        snap = document.getElementById("snap_shot")
-        let interval = setInterval(function(){
-            snap.innerHTML = `Snap shot will be taken in <br><p style="font-size:8rem;">${count}</p>`
-            if (count == 0){
-                snap.innerHTML = `<p style="font-size:3rem;">Snap Taken</p>`
-                clearInterval(interval)
-                setTimeout(function(){
-                    snap.innerHTML = ""
-                },5000)
-            }
-            count -= 1
-        },1000)
-    }
-</script>
 {% endblock %}
