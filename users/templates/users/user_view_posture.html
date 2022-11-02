@@ -67,15 +67,17 @@
     function tester() {
         document.getElementById("train").style.display = "block";
         document.getElementById("train").scrollIntoView({ behavior: "smooth" })
-        const video5 = document.getElementsByClassName('input_video5')[0];
         const out5 = document.getElementsByClassName('output5')[0];
         const controlsElement5 = document.getElementsByClassName('control5')[0];
+        const video5 = document.getElementsByClassName('input_video5')[0];
         const canvasCtx5 = out5.getContext('2d');
         const pi = Math.PI
         const fpsControl = new FPS();
         var score = 0
         var isBegin = false
         snapshot = document.getElementById("snapshot")
+        canvasCtx5.font = "30px Comic Sans MS";
+        canvasCtx5.fillStyle = "red";
 
         function zColor(data) {
             const z = clamp(data.from.z + 0.5, 0, 1);
@@ -103,22 +105,11 @@
                 results.image, 0, 0, out5.width, out5.height);
             drawConnectors(
                 canvasCtx5, results.poseLandmarks, POSE_CONNECTIONS, {
-                color: (data) => {
-                    const x0 = out5.width * data.from.x;
-                    const y0 = out5.height * data.from.y;
-                    const x1 = out5.width * data.to.x;
-                    const y1 = out5.height * data.to.y;
-
-                    const z0 = clamp(data.from.z + 0.5, 0, 1);
-                    const z1 = clamp(data.to.z + 0.5, 0, 1);
-
-                    const gradient = canvasCtx5.createLinearGradient(x0, y0, x1, y1);
-                    gradient.addColorStop(
-                        0, `rgba(0, ${255 * z0}, ${255 * (1 - z0)}, 1)`);
-                    gradient.addColorStop(
-                        1.0, `rgba(0, ${255 * z1}, ${255 * (1 - z1)}, 1)`);
-                    return gradient;
-                }
+                color:"#FF0000"
+            });
+            drawConnectors(
+                canvasCtx5, [results.poseLandmarks[11],results.poseLandmarks[12]], POSE_CONNECTIONS, {
+                color:"#00FF00"
             });
 
             //since here the frame is flipped left will be right and right will be left
@@ -136,11 +127,25 @@
             right_wrist_cordinate = Math.round(results.poseLandmarks[15].x * out5.width)
             two_hand_distance = Math.abs(right_wrist_cordinate - left_wrist_cordinate)
             calculated = [two_hand_distance, left_hand_elbow, right_hand_elbow, left_shoulder,right_shoulder, left_hip, right_hip, left_knee, right_knee]
+            connector_points = {
+                0:[],
+                1:[results.poseLandmarks[11],results.poseLandmarks[13],results.poseLandmarks[15]],
+                2:[results.poseLandmarks[12],results.poseLandmarks[14],results.poseLandmarks[16]],
+                3:[results.poseLandmarks[11],results.poseLandmarks[13],results.poseLandmarks[23]],
+                4:[results.poseLandmarks[12],results.poseLandmarks[14],results.poseLandmarks[24]],
+                5:[results.poseLandmarks[11],results.poseLandmarks[23],results.poseLandmarks[25]],
+                6:[results.poseLandmarks[12],results.poseLandmarks[24],results.poseLandmarks[26]],
+                7:[results.poseLandmarks[23],results.poseLandmarks[25],results.poseLandmarks[27]],
+                8:[results.poseLandmarks[24],results.poseLandmarks[26],results.poseLandmarks[28]]
+            }
             checker = []
-            if (isBegin){
+            green = []
+
+            if (isBegin){ 
                 for(i=0;i<array.length;i++){
                     if (array[i].includes(calculated[i])){
                         checker.push(true)
+                        green.push(connector_points[i])  
                     }    
                     else{
                         checker.push(false)
@@ -149,8 +154,18 @@
                 }
                 if (checker.every(check => check === true)){
                     score += 1
-                    console.log(score)
                 }
+                canvasCtx5.fillText(score, out5.width - 50,25);
+                for(i=0;i<green.length;i++){
+                    drawConnectors(
+                    canvasCtx5, green[i], POSE_CONNECTIONS, {
+                    color: "#00FF00"
+                    });
+                }
+                
+            }
+            else{
+                canvasCtx5.fillText("Get Reddy !!", out5.width - 200,25);
             }
             if (score == 150) {
                 const stream = video5.srcObject;
@@ -224,18 +239,23 @@
                 video5.classList.toggle('selfie', options.selfieMode);
                 pose.setOptions(options);
             });
-        number = 5
-        myInterval = setInterval(() => {
-            snapshot.innerHTML = `
-            <p>The snapshot will be taken in ${number}</p>
-            `
-            number -= 1
-            if (number == -2) {
-                snapshot.innerHTML = `<img src=${snap_shot} id="snap" width="480px" height="480px">`
-                isBegin = true
-                clearInterval(myInterval)
-            }
-        }, 1000)
+        snapshot.innerHTML = `<img src=${snap_shot} id="snap" width="480px" height="480px">`
+        setTimeout(() => {
+            count = 3
+            canvasCtx5.font = "30px Comic Sans MS";
+            canvasCtx5.fillStyle = "red";
+            const myinterval = setInterval(()=>{
+
+                if(count == 0){
+                    isBegin = true
+                    clearInterval(myinterval)
+                }
+                canvasCtx5.fillText(count, out5.width - 50,25);
+                count -= 1
+            },1000)
+
+            
+        },10000)
     }
 </script>
 {% endblock %}

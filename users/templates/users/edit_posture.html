@@ -59,6 +59,8 @@
         var isSnap = false
         snapshot = document.getElementById("snapshot")
 
+        
+
         function zColor(data) {
             const z = clamp(data.from.z + 0.5, 0, 1);
             return `rgba(0, ${255 * z}, ${255 * (1 - z)}, 1)`;
@@ -164,7 +166,18 @@
             }
         });
         pose.onResults(onResultsPose);
-
+        number = 10
+        myInterval  = setInterval(() => {
+            snapshot.innerHTML = `
+                <p>The snapshot will be taken in ${number}</p>
+                `
+            number -= 1
+            if (number == -2) {
+                isSnap = true
+                snapshot.innerHTML = `<canvas id="snap" width="480px" height="480px"></canvas>`
+                clearInterval(myInterval)
+            }
+        }, 1000)
         const camera = new Camera(video5, {
             onFrame: async () => {
                 await pose.send({ image: video5 });
@@ -204,18 +217,7 @@
                 video5.classList.toggle('selfie', options.selfieMode);
                 pose.setOptions(options);
             });
-        number = 5
-        myInterval  = setInterval(() => {
-            snapshot.innerHTML = `
-                <p>The snapshot will be taken in ${number}</p>
-                `
-            number -= 1
-            if (number == -2) {
-                isSnap = true
-                snapshot.innerHTML = `<canvas id="snap" width="480px" height="480px"></canvas>`
-                clearInterval(myInterval)
-            }
-        }, 1000)
+        
     }
 
 </script>
