@@ -55,3 +55,4 @@ media/
 new_dataset.csv
 js mediapipe
 backup.py
+.cph/

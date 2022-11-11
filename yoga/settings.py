@@ -24,9 +24,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-2@d_u@j&$$o$l^0z_6p+y#^ewn1a)m#wy0#(0nkw@doy9x0v3p'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = []
+IS_PRODUCTION = os.environ.get('IS_PRODUCTION', False)
+DEBUG = not IS_PRODUCTION
+
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -76,13 +78,26 @@ WSGI_APPLICATION = 'yoga.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if IS_PRODUCTION:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('POSTGRES_USER'),
+            'USER': os.environ.get('POSTGRES_USER'),
+            'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+            'HOST': 'postgres',
+            'PORT': os.environ.get('POSTGRES_PORT'),
+            'ATOMIC_REQUESTS': True,
+        }
     }
-}
+else: 
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+            'ATOMIC_REQUESTS': True,
+        }
+    }
 
 
 # Password validation
@@ -125,7 +140,6 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, '/')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
-    # os.path.join(BASE_DIR, 'theme', 'static'),
 ]
 
 # Default primary key field type
