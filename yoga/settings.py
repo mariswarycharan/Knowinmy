@@ -159,3 +159,5 @@ CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 LOGIN_URL='/login/'
 LOGIN_REDIRECT_URL= '/'
+
+CSRF_TRUSTED_ORIGINS = ["https://test1.knowinmy.com", "http://10.1.76.152"]
