@@ -161,5 +161,5 @@ LOGIN_URL='/login/'
 LOGIN_REDIRECT_URL= '/'
 
 CSRF_TRUSTED_ORIGINS = ["https://test1.knowinmy.com", "http://10.1.76.152"]
-if IS_PRODUCTION:
-    SECURE_SSL_REDIRECT = True
+#if IS_PRODUCTION:
+#    SECURE_SSL_REDIRECT = True
