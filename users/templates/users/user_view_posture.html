@@ -6,6 +6,13 @@
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.2/drawing_utils.js"
     crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.2/pose.js" crossorigin="anonymous"></script>
+
+<!-- Distance -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.6/control_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
 {% endblock %}
 {% block body %}
 <div class="container mt-5">
@@ -36,6 +43,23 @@
         {% endfor%}
     </div>
     <video class="input_video5" style="display:none;"></video>
+
+    <!-- Distance Div -->
+    <div class="dis-container">
+        <!-- <video class="input_video" style="display: none;"></video> -->
+        <div class="canvas-container">
+          <canvas class="output_canvas">
+          </canvas>
+        </div>
+        <div class="control-panel" style="display: none;">
+        </div>
+    </div>
+
+    <div class="counter" style="display: none;"> 
+        <h2>Get Ready</h2> 
+        <h3 id="countdownDisplay">5</h3>
+    </div>
+
     <div id="train" class="card shadow mb-4 mt-4" style="display:none;">
         <div class="card-header py-3">
             <h6 class="m-0 font-weight-bold text-primary">KnowInMy - Test</h6>
@@ -53,17 +77,22 @@
     </div>
     <div style="visibility: hidden;" class="control5"></div>
 </div>
+
+
+
 <script>
     var array
     var snap_shot;
+    let processFurther = true;
     async function loadTest(posture_id) {
         response = await fetch(`/get_posture_dataset?posture_id=${posture_id}`)
         response = await response.json()
         array = await response["dataset"]
-        console.log(await array)
+     
         snap_shot = await response["snapshot"]
-        await tester()
+        await distance()
     }
+
     function tester() {
         document.getElementById("train").style.display = "block";
         document.getElementById("train").scrollIntoView({ behavior: "smooth" })
@@ -74,7 +103,7 @@
         const pi = Math.PI
         const fpsControl = new FPS();
         var score = 0
-        var isBegin = false
+        var isBegin = true
         snapshot = document.getElementById("snapshot")
         canvasCtx5.font = "30px Comic Sans MS";
         canvasCtx5.fillStyle = "red";
@@ -116,8 +145,10 @@
             // to get the index value refer the https://mediapipe.dev/images/mobile/pose_tracking_full_body_landmarks.png
             // 11 which means left shoulder, since here it is flipped 11 means right shoulder
             left_hand_elbow = calculateAngle(results.poseLandmarks[12], results.poseLandmarks[14], results.poseLandmarks[16])
+            
             right_hand_elbow = calculateAngle(results.poseLandmarks[11], results.poseLandmarks[13], results.poseLandmarks[15])
             left_shoulder = calculateAngle(results.poseLandmarks[14], results.poseLandmarks[12], results.poseLandmarks[24])
+            
             right_shoulder = calculateAngle(results.poseLandmarks[13], results.poseLandmarks[11], results.poseLandmarks[23])
             left_hip = calculateAngle(results.poseLandmarks[12], results.poseLandmarks[24], results.poseLandmarks[26])
             right_hip = calculateAngle(results.poseLandmarks[11], results.poseLandmarks[23], results.poseLandmarks[25])
@@ -125,8 +156,8 @@
             right_knee = calculateAngle(results.poseLandmarks[23], results.poseLandmarks[25], results.poseLandmarks[27])
             left_wrist_cordinate = Math.round(results.poseLandmarks[16].x * out5.width)
             right_wrist_cordinate = Math.round(results.poseLandmarks[15].x * out5.width)
-            two_hand_distance = Math.abs(right_wrist_cordinate - left_wrist_cordinate)
-            calculated = [two_hand_distance, left_hand_elbow, right_hand_elbow, left_shoulder,right_shoulder, left_hip, right_hip, left_knee, right_knee]
+            // two_hand_distance = Math.abs(right_wrist_cordinate - left_wrist_cordinate)
+            calculated = [left_hand_elbow, right_hand_elbow, left_shoulder,right_shoulder, left_hip, right_hip, left_knee, right_knee]
             connector_points = {
                 0:[],
                 1:[results.poseLandmarks[11],results.poseLandmarks[13],results.poseLandmarks[15]],
@@ -140,23 +171,32 @@
             }
             checker = []
             green = []
+            
 
             if (isBegin){ 
                 for(i=0;i<array.length;i++){
+                   
                     if (array[i].includes(calculated[i])){
                         checker.push(true)
-                        green.push(connector_points[i])  
                     }    
                     else{
+                        green.push(connector_points[i])  
                         checker.push(false)
                         break
                     }
                 }
-                if (checker.every(check => check === true)){
+                    
+
+                if (checker.every(check => check == true)){
+                    //console.table(checker)
                     score += 1
                 }
                 canvasCtx5.fillText(score, out5.width - 50,25);
+                    
+
+                // drawing red color circle for wroung keep pose
                 for(i=0;i<green.length;i++){
+                    //console.table(green[i])
                     drawConnectors(
                     canvasCtx5, green[i], POSE_CONNECTIONS, {
                     color: "#00FF00"
@@ -167,7 +207,7 @@
             else{
                 canvasCtx5.fillText("Get Reddy !!", out5.width - 200,25);
             }
-            if (score == 150) {
+            if (score == 500) {
                 const stream = video5.srcObject;
                 const tracks = stream.getTracks();
                 tracks.forEach((track) => {
@@ -175,6 +215,10 @@
                 });
                 document.getElementById("train").style.display = "none"
             }
+            
+            document.getElementsByClassName("m-0 font-weight-bold text-primary").innerHTML =  score.toString()
+
+
             drawLandmarks(
                 canvasCtx5,
                 Object.values(POSE_LANDMARKS_LEFT)
@@ -185,11 +229,12 @@
                 Object.values(POSE_LANDMARKS_RIGHT)
                     .map(index => results.poseLandmarks[index]),
                 { color: zColor, fillColor: '#00FF00' });
-            drawLandmarks(
-                canvasCtx5,
-                Object.values(POSE_LANDMARKS_NEUTRAL)
-                    .map(index => results.poseLandmarks[index]),
-                { color: zColor, fillColor: '#AAAAAA' });
+
+            //drawLandmarks(
+            //    canvasCtx5,
+            //    Object.values(POSE_LANDMARKS_NEUTRAL)
+            //        .map(index => results.poseLandmarks[index]),
+            //    { color: zColor, fillColor: '#AAAAAA' }); 
             canvasCtx5.restore();
         }
 
@@ -240,22 +285,148 @@
                 pose.setOptions(options);
             });
         snapshot.innerHTML = `<img src=${snap_shot} id="snap" width="480px" height="480px">`
-        setTimeout(() => {
-            count = 3
-            canvasCtx5.font = "30px Comic Sans MS";
-            canvasCtx5.fillStyle = "red";
-            const myinterval = setInterval(()=>{
+        
+        // setTimeout(() => {
+        //     count = 3
+        //     canvasCtx5.font = "30px Comic Sans MS";
+        //     canvasCtx5.fillStyle = "red";
+        //     const myinterval = setInterval(()=>{
 
-                if(count == 0){
-                    isBegin = true
-                    clearInterval(myinterval)
-                }
-                canvasCtx5.fillText(count, out5.width - 50,25);
-                count -= 1
-            },1000)
-
-            
-        },10000)
+        //         if(count == 0){
+        //             isBegin = true
+        //             clearInterval(myinterval)
+        //         }
+        //         canvasCtx5.fillText(count, out5.width - 50,25);
+        //         count -= 1
+        //     },1000)            
+        // },10000)
     }
+
+    // Distance 
+    function distance() {
+        console.log('Running')
+        const controls = window;
+        const drawingUtils = window;
+        const mpFaceMesh = window;
+        const config = {
+            locateFile: (file) => {
+                return (`https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@` +
+                    `${mpFaceMesh.VERSION}/${file}`);
+            }
+        };
+
+        const disContainer = document.querySelector('.dis-container')
+        const canvasElement = document.getElementsByClassName("output_canvas")[0];
+        const controlsElement = document.getElementsByClassName("control-panel")[0];
+        const canvasCtx = canvasElement.getContext("2d");
+
+        const solutionOptions = {
+            selfieMode: true,
+            enableFaceGeometry: false,
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        };
+
+        const fpsControl = new controls.FPS();
+
+        async function onResults(results) {
+
+            if (!processFurther) {
+                return
+            }; 
+
+            document.body.classList.add("loaded");
+            fpsControl.tick();
+            var width = 400;
+            var height = 400;
+            var irisLeftMinX = -1;
+            var irisLeftMaxX = -1;
+            // Draw the overlays.
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            if (results.multiFaceLandmarks) {
+                for (const landmarks of results.multiFaceLandmarks) {
+                    for (const point of FACEMESH_LEFT_IRIS) {
+                        var point0 = landmarks[point[0]];
+                        if (irisLeftMinX == -1 || point0.x * width < irisLeftMinX) {
+                            irisLeftMinX = point0.x * width;
+                        }
+                        if (irisLeftMaxX == -1 || point0.x * width > irisLeftMaxX) {
+                            irisLeftMaxX = point0.x * width;
+                        }
+                    }
+                    drawingUtils.drawConnectors(canvasCtx, landmarks, mpFaceMesh.FACEMESH_LEFT_IRIS, { color: "#30FF30", lineWidth: 1 });
+                }
+            }
+            var dx = irisLeftMaxX - irisLeftMinX;
+            var dX = 11.7;
+            var normalizedFocaleX = 1.40625;
+            var fx = Math.min(width, height) * normalizedFocaleX;
+            var dZ = (fx * (dX / dx)) / 10.0;
+            dZ = dZ.toFixed(2);
+            // console.log(dZ + " cm");
+
+            if (dZ > 170 && dZ != 'Infinity') {
+                console.log(dZ)
+                console.log('open')
+                document.querySelector(".dis-container").style.display = "none";
+
+                document.querySelector('.counter').style.display = "block";
+                let countdown = 5;
+                updateCountdownDisplay(countdown);
+
+                let interval = setInterval(() => {
+                    countdown--;
+                    updateCountdownDisplay(countdown);
+                    if (countdown <= 0) {
+                        clearInterval(interval); 
+                    }
+                }, 1000);
+
+                setTimeout(async () => {
+                    clearInterval(interval);  
+                    document.querySelector('.counter').style.display = "none";
+                    document.getElementById("train").style.display = "block";
+                    await tester();
+                }, 5000);
+
+                processFurther = false;
+                return;
+            } 
+
+            canvasCtx.fillStyle = "red";
+            canvasCtx.font = "30px Arial";
+            canvasCtx.fillText(dZ + " cm", width * 0.60, 40);
+            canvasCtx.restore();
+        }
+
+        const faceMesh = new mpFaceMesh.FaceMesh(config);
+        faceMesh.setOptions(solutionOptions);
+        faceMesh.onResults(onResults);
+
+        new controls.ControlPanel(controlsElement, solutionOptions)
+            .add([
+            fpsControl,
+            new controls.SourcePicker({
+                onFrame: async (input) => {
+                    canvasElement.width = 400;
+                    canvasElement.height = 400;
+                    await faceMesh.send({ image: input });
+                },
+            }),
+        ])  
+
+    }
+
+    function updateCountdownDisplay(countdown) {
+        let countdownElement = document.getElementById('countdownDisplay');
+        if (countdownElement) {
+            countdownElement.innerHTML = countdown.toString();
+        }
+    }
+
 </script>
 {% endblock %}

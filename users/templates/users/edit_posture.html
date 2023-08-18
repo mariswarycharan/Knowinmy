@@ -116,8 +116,10 @@
             // to get the index value refer the https://mediapipe.dev/images/mobile/pose_tracking_full_body_landmarks.png
             // 11 which means left shoulder, since here it is flipped 11 means right shoulder
             left_hand_elbow = calculateAngle(results.poseLandmarks[12], results.poseLandmarks[14], results.poseLandmarks[16])
+            
             right_hand_elbow = calculateAngle(results.poseLandmarks[11], results.poseLandmarks[13], results.poseLandmarks[15])
             left_shoulder = calculateAngle(results.poseLandmarks[14], results.poseLandmarks[12], results.poseLandmarks[24])
+            
             right_shoulder = calculateAngle(results.poseLandmarks[13], results.poseLandmarks[11], results.poseLandmarks[23])
             left_hip = calculateAngle(results.poseLandmarks[12], results.poseLandmarks[24], results.poseLandmarks[26])
             right_hip = calculateAngle(results.poseLandmarks[11], results.poseLandmarks[23], results.poseLandmarks[25])
@@ -125,13 +127,13 @@
             right_knee = calculateAngle(results.poseLandmarks[23], results.poseLandmarks[25], results.poseLandmarks[27])
             left_wrist_cordinate = Math.round(results.poseLandmarks[16].x * out5.width)
             right_wrist_cordinate = Math.round(results.poseLandmarks[15].x * out5.width)
-            two_hand_distance = Math.abs(right_wrist_cordinate - left_wrist_cordinate)
-            console.log([two_hand_distance, left_hand_elbow, right_hand_elbow, left_shoulder,
+            //  two_hand_distance = Math.abs(right_wrist_cordinate - left_wrist_cordinate)
+            console.log([left_hand_elbow, right_hand_elbow, left_shoulder,
                 right_shoulder, left_hip, right_hip, left_knee, right_knee])
-            array.push([two_hand_distance, left_hand_elbow, right_hand_elbow, left_shoulder,
+            array.push([left_hand_elbow, right_hand_elbow, left_shoulder,
                 right_shoulder, left_hip, right_hip, left_knee, right_knee])
             count += 1
-            if (count == 300) {
+            if (count == 250) {
                 document.getElementById("dataset").value = JSON.stringify(array)
                 const stream = video5.srcObject;
                 const tracks = stream.getTracks();
