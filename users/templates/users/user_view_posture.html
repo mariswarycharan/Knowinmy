@@ -40,6 +40,9 @@
             </div>
         </div>
 
+        <h4 id = "distance_bt_camera_man_tag_id" ></h4>
+
+
         {% endfor%}
     </div>
     <video class="input_video5" style="display:none;"></video>
@@ -56,14 +59,18 @@
     </div>
 
     <div class="counter" style="display: none;"> 
-        <h2>Get Ready</h2> 
+        <h2 id = "Get_ready_comment_tag_id" >Get ready to begin the yoga pose in 5 seconds.</h2>
+
         <h3 id="countdownDisplay">5</h3>
     </div>
 
     <div id="train" class="card shadow mb-4 mt-4" style="display:none;">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">KnowInMy - Test</h6>
+
+        <div class="card-header py-3 d-flex justify-content-around ">
+            <h6 class="m-0 font-weight-bold text-primary">KnowInMy - Train</h6>
+            <h6 id = "testing_count_tag_id" class="m-0 font-weight-bold text-primary">Count => </h6>
         </div>
+
         <div class="card-body">
             <div class="row">
                 <div class="col-4">
@@ -72,6 +79,8 @@
                 <div class="col-2"></div>
                 <div class="col-6" id="snapshot">
                 </div>
+                <h3  style = "padding-left: 250px;" id = "accurary_tag_id" >Accuracy => </h3>
+
             </div>
         </div>
     </div>
@@ -84,14 +93,98 @@
     var array
     var snap_shot;
     let processFurther = true;
+    var count_text_to_audio_stand_instruction = true;
+    let avg
+
     async function loadTest(posture_id) {
         response = await fetch(`/get_posture_dataset?posture_id=${posture_id}`)
         response = await response.json()
         array = await response["dataset"]
-     
+
+        avg = getAverage(array[8])
+        
         snap_shot = await response["snapshot"]
         await distance()
     }
+
+    function findMode(arr) {
+        const frequencyMap = {};
+        let maxFrequency = 0;
+        let mode;
+      
+        for (const item of arr) {
+          if (frequencyMap[item]) {
+            frequencyMap[item]++;
+          } else {
+            frequencyMap[item] = 1;
+          }
+      
+          if (frequencyMap[item] > maxFrequency) {
+            maxFrequency = frequencyMap[item];
+            mode = item;
+          }
+        }
+      
+        return mode;
+      }
+
+
+      
+      // Function to count the occurrences of each element in an array and check if a person is standing at a specific distance. 
+   
+
+    function getAverage(arr) {
+        const countMap = {};
+        var numbers = arr;
+        // Loop through the array and count the occurrences of each element
+        for (const num of numbers) {
+        if (countMap[num]) {
+            countMap[num]++;
+        } else {
+            countMap[num] = 1;
+        }
+        }
+
+        // Find the element with the highest count
+        let maxCount = 0;
+        let mostFrequentElement;
+
+        for (const num in countMap) {
+        if (countMap[num] > maxCount) {
+            maxCount = countMap[num];
+            mostFrequentElement = num;
+        }
+        }
+        return mostFrequentElement
+       
+    }
+
+
+    function playTextAsAudio(text, rate = 0.4, pitch = 1) {
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance();
+          const voices = speechSynthesis.getVoices();
+      
+          
+          // Set the rate (optional)
+          utterance.rate = rate;
+      
+          // Set the pitch (optional)
+          utterance.pitch = pitch;
+      
+          // Set the text to be spoken
+          utterance.text = text;
+      
+          // Speak the text
+          speechSynthesis.speak(utterance);
+        } else {
+          console.error('Speech synthesis not supported in this browser.');
+        }
+      }
+      
+    
+      
+
 
     function tester() {
         document.getElementById("train").style.display = "block";
@@ -124,6 +217,20 @@
             return Math.round(angle)
         }
 
+        var mode_list = [];
+        var sum_of_mode_list = 0;
+
+                
+        for (let j = 0 ; j < array.length - 1; j++){
+            mode_value = findMode(array[j])
+            mode_list.push(mode_value)
+        }
+        sum_of_mode_list = mode_list.reduce(function (accumulator, currentValue) {
+            return accumulator + currentValue;
+          }, 0);
+
+        
+        
         function onResultsPose(results) {
             fpsControl.tick();
             canvasCtx5.save();
@@ -134,12 +241,14 @@
                 results.image, 0, 0, out5.width, out5.height);
             drawConnectors(
                 canvasCtx5, results.poseLandmarks, POSE_CONNECTIONS, {
-                color:"#FF0000"
+                color:"#ffffff"
             });
-            drawConnectors(
+
+            /*drawConnectors(
                 canvasCtx5, [results.poseLandmarks[11],results.poseLandmarks[12]], POSE_CONNECTIONS, {
                 color:"#00FF00"
             });
+            */
 
             //since here the frame is flipped left will be right and right will be left
             // to get the index value refer the https://mediapipe.dev/images/mobile/pose_tracking_full_body_landmarks.png
@@ -159,28 +268,34 @@
             // two_hand_distance = Math.abs(right_wrist_cordinate - left_wrist_cordinate)
             calculated = [left_hand_elbow, right_hand_elbow, left_shoulder,right_shoulder, left_hip, right_hip, left_knee, right_knee]
             connector_points = {
-                0:[],
-                1:[results.poseLandmarks[11],results.poseLandmarks[13],results.poseLandmarks[15]],
-                2:[results.poseLandmarks[12],results.poseLandmarks[14],results.poseLandmarks[16]],
-                3:[results.poseLandmarks[11],results.poseLandmarks[13],results.poseLandmarks[23]],
-                4:[results.poseLandmarks[12],results.poseLandmarks[14],results.poseLandmarks[24]],
-                5:[results.poseLandmarks[11],results.poseLandmarks[23],results.poseLandmarks[25]],
-                6:[results.poseLandmarks[12],results.poseLandmarks[24],results.poseLandmarks[26]],
-                7:[results.poseLandmarks[23],results.poseLandmarks[25],results.poseLandmarks[27]],
-                8:[results.poseLandmarks[24],results.poseLandmarks[26],results.poseLandmarks[28]]
+                
+                0:[results.poseLandmarks[11],results.poseLandmarks[13],results.poseLandmarks[15]],
+                1:[results.poseLandmarks[12],results.poseLandmarks[14],results.poseLandmarks[16]],
+                2:[results.poseLandmarks[13],results.poseLandmarks[11],results.poseLandmarks[23]],
+                3:[results.poseLandmarks[14],results.poseLandmarks[12],results.poseLandmarks[24]],
+                4:[results.poseLandmarks[11],results.poseLandmarks[23],results.poseLandmarks[25]],
+                5:[results.poseLandmarks[12],results.poseLandmarks[24],results.poseLandmarks[26]],
+                6:[results.poseLandmarks[23],results.poseLandmarks[25],results.poseLandmarks[27]],
+                7:[results.poseLandmarks[24],results.poseLandmarks[26],results.poseLandmarks[28]]
             }
             checker = []
-            green = []
+            var green = []
+            var red = []
             
-
+            
+        
             if (isBegin){ 
-                for(i=0;i<array.length;i++){
-                   
+
+
+                for(i=0;i<array.length - 1;i++){
+                    
                     if (array[i].includes(calculated[i])){
+
+                        green.push(connector_points[i])  
                         checker.push(true)
                     }    
                     else{
-                        green.push(connector_points[i])  
+                        red.push(connector_points[i])  
                         checker.push(false)
                         break
                     }
@@ -188,38 +303,77 @@
                     
 
                 if (checker.every(check => check == true)){
-                    //console.table(checker)
+
                     score += 1
+
+                    sum_each_angle_of_pose = left_hand_elbow + right_hand_elbow + left_shoulder + right_shoulder +  left_hip +  right_hip +  left_knee +  right_knee
+                    accuracy = (sum_each_angle_of_pose/sum_of_mode_list)*100;
+
+                    if (accuracy > 100) {
+                        accuracy = 100 - (accuracy - 100);
+                        accuracy = Math.round(accuracy * 100) / 100; // Round to 2 decimal places
+                    } else {
+                        accuracy = Math.round(accuracy * 100) / 100; // Round to 2 decimal places
+                    }
+
+                    document.getElementById("accurary_tag_id").innerHTML = "Accurary => " + String(accuracy) + " % "
+
+
                 }
                 canvasCtx5.fillText(score, out5.width - 50,25);
                     
 
                 // drawing red color circle for wroung keep pose
-                for(i=0;i<green.length;i++){
+                /*for(i=0;i<green.length;i++){
                     //console.table(green[i])
                     drawConnectors(
                     canvasCtx5, green[i], POSE_CONNECTIONS, {
                     color: "#00FF00"
                     });
                 }
+                */
+
+                for(i=0;i<red.length;i++){
+                    drawConnectors(
+                    canvasCtx5, red[i], POSE_CONNECTIONS, {
+                    color: "#FF0000",
+                    
+                    });
+                }
+
+                for(i=0;i<red.length;i++){
+
+                    drawLandmarks(
+                        canvasCtx5,
+                        [red[i][1]],POSE_LANDMARKS,
+                        { color: zColor, fillColor: '#FF0000' });
+                }
                 
             }
+            
             else{
                 canvasCtx5.fillText("Get Reddy !!", out5.width - 200,25);
             }
-            if (score == 500) {
+
+            document.getElementById("testing_count_tag_id").innerHTML = "Count => " + String(score)
+
+
+            if (score == 50) {
                 const stream = video5.srcObject;
                 const tracks = stream.getTracks();
                 tracks.forEach((track) => {
                     track.stop();
                 });
                 document.getElementById("train").style.display = "none"
+
+                playTextAsAudio( "You have completed the yoga exercise successfully." ,0.4, 1)
+
             }
             
             document.getElementsByClassName("m-0 font-weight-bold text-primary").innerHTML =  score.toString()
-
-
-            drawLandmarks(
+            
+            
+            /*drawLandmarks(
                 canvasCtx5,
                 Object.values(POSE_LANDMARKS_LEFT)
                     .map(index => results.poseLandmarks[index]),
@@ -229,12 +383,16 @@
                 Object.values(POSE_LANDMARKS_RIGHT)
                     .map(index => results.poseLandmarks[index]),
                 { color: zColor, fillColor: '#00FF00' });
+            */
 
-            //drawLandmarks(
-            //    canvasCtx5,
-            //    Object.values(POSE_LANDMARKS_NEUTRAL)
-            //        .map(index => results.poseLandmarks[index]),
-            //    { color: zColor, fillColor: '#AAAAAA' }); 
+        
+            /*drawLandmarks(
+                canvasCtx5,
+                Object.values(POSE_LANDMARKS_NEUTRAL)
+                    .map(index => results.poseLandmarks[index]),
+                { color: zColor, fillColor: '#0f0f0f' }); 
+            */
+            
             canvasCtx5.restore();
         }
 
@@ -302,9 +460,10 @@
         // },10000)
     }
 
+    
+
     // Distance 
     function distance() {
-        console.log('Running')
         const controls = window;
         const drawingUtils = window;
         const mpFaceMesh = window;
@@ -368,13 +527,28 @@
             var dZ = (fx * (dX / dx)) / 10.0;
             dZ = dZ.toFixed(2);
             // console.log(dZ + " cm");
+            // console.log(avg)
+            document.getElementById("distance_bt_camera_man_tag_id").innerHTML = "Stand away from the laptop at a distance between " + String(avg)  + "cm and "+ String(Number(avg) + 20) + " cm"
+            
 
-            if (dZ > 170 && dZ != 'Infinity') {
+
+            if (count_text_to_audio_stand_instruction == true ) {
+                playTextAsAudio("Stand away from the laptop at a distance between " + String(avg)  + "cm and "+ String(Number(avg) + 20) + " cm", 0.4, 1)
+                count_text_to_audio_stand_instruction = false;
+                
+            }
+
+            if (dZ > avg && dZ < avg + 20 && dZ != 'Infinity') {
                 console.log(dZ)
                 console.log('open')
-                document.querySelector(".dis-container").style.display = "none";
+                
+                
+                playTextAsAudio( "You are standing at the correct distance Now Get ready to begin the yoga pose in 5 seconds." ,1, 1)
 
+
+                document.querySelector(".dis-container").style.display = "none";
                 document.querySelector('.counter').style.display = "block";
+
                 let countdown = 5;
                 updateCountdownDisplay(countdown);
 

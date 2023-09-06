@@ -7,6 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.2/drawing_utils.js"
     crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.2/pose.js" crossorigin="anonymous"></script>
+
 {% endblock %}
 {% block body %}
 <div class="container">
@@ -21,8 +22,9 @@
     </div>
     <video class="input_video5" style="display:none;"></video>
     <div id="train" class="card shadow mb-4 mt-4" style="display:none;">
-        <div class="card-header py-3">
+        <div class="card-header py-3 d-flex justify-content-around ">
             <h6 class="m-0 font-weight-bold text-primary">KnowInMy - Train</h6>
+            <h6 id = "training_count_tag_id" class="m-0 font-weight-bold text-primary">Count => </h6>
         </div>
         <div class="card-body">
             <div class="row">
@@ -45,6 +47,31 @@
     <div style="visibility: hidden;" class="control5"></div>
 </div>
 <script>
+
+    function playTextAsAudio(text, rate = 0.4, pitch = 1) {
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance();
+          const voices = speechSynthesis.getVoices();
+      
+          
+          // Set the rate (optional)
+          utterance.rate = rate;
+      
+          // Set the pitch (optional)
+          utterance.pitch = pitch;
+      
+          // Set the text to be spoken
+          utterance.text = text;
+      
+          // Speak the text
+          speechSynthesis.speak(utterance);
+        } else {
+          console.error('Speech synthesis not supported in this browser.');
+        }
+      }
+      
+ 
+
     function trainer() {
         document.getElementById("train").style.display = "block";
         document.getElementById("train").scrollIntoView({ behavior: "smooth" })
@@ -58,8 +85,6 @@
         var count = 0
         var isSnap = false
         snapshot = document.getElementById("snapshot")
-
-        
 
         function zColor(data) {
             const z = clamp(data.from.z + 0.5, 0, 1);
@@ -128,12 +153,28 @@
             left_wrist_cordinate = Math.round(results.poseLandmarks[16].x * out5.width)
             right_wrist_cordinate = Math.round(results.poseLandmarks[15].x * out5.width)
             //  two_hand_distance = Math.abs(right_wrist_cordinate - left_wrist_cordinate)
-            console.log([left_hand_elbow, right_hand_elbow, left_shoulder,
-                right_shoulder, left_hip, right_hip, left_knee, right_knee])
+            //console.log([left_hand_elbow, right_hand_elbow, left_shoulder,right_shoulder, left_hip, right_hip, left_knee, right_knee])
+
+
+            let leftEye = results.poseLandmarks[1];
+            let rightEye = results.poseLandmarks[2];
+            let pixelDistance = Math.sqrt(Math.pow(rightEye.x - leftEye.x, 2) + Math.pow(rightEye.y - leftEye.y, 2)) * out5.width; 
+            const refPixelDistance = 100; 
+            const refPhysicalDistance = 0.063;
+            let distanceToCamera = (refPhysicalDistance * refPixelDistance) / pixelDistance; 
+
             array.push([left_hand_elbow, right_hand_elbow, left_shoulder,
-                right_shoulder, left_hip, right_hip, left_knee, right_knee])
+                right_shoulder, left_hip, right_hip, left_knee, right_knee , Math.round(distanceToCamera * 100)])
+
+            console.log([left_hand_elbow, right_hand_elbow, left_shoulder,
+                right_shoulder, left_hip, right_hip, left_knee, right_knee, Math.round(distanceToCamera * 100)])
+            
+            
+            document.getElementById("training_count_tag_id").innerHTML = "Count => " + String(count)
+            
             count += 1
-            if (count == 250) {
+
+            if (count == 350) {
                 document.getElementById("dataset").value = JSON.stringify(array)
                 const stream = video5.srcObject;
                 const tracks = stream.getTracks();
@@ -142,6 +183,8 @@
                 });
                 document.getElementById("train").style.display = "none"
                 document.getElementById("dataset_form").submit()
+                playTextAsAudio( "Training process completed successfully." ,0.7, 1)
+
             }
             drawLandmarks(
                 canvasCtx5,
@@ -174,7 +217,7 @@
                 <p>The snapshot will be taken in ${number}</p>
                 `
             number -= 1
-            if (number == -2) {
+            if (number == 0) {
                 isSnap = true
                 snapshot.innerHTML = `<canvas id="snap" width="480px" height="480px"></canvas>`
                 clearInterval(myInterval)
