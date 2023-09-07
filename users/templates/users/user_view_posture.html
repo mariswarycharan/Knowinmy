@@ -40,7 +40,11 @@
             </div>
         </div>
 
+        
         <h4 id = "distance_bt_camera_man_tag_id" ></h4>
+        <h2 id = "current_distance_tag_id" ></h2>
+
+        
 
 
         {% endfor%}
@@ -549,6 +553,9 @@
             // console.log(dZ + " cm");
             // console.log(avg)
             document.getElementById("distance_bt_camera_man_tag_id").innerHTML = "Stand away from the laptop at a distance between " + String(avg)  + "cm and "+ String(Number(avg) + 30) + " cm"
+            
+            document.getElementById("current_distance_tag_id").innerHTML = "Current Distance => " + String(dZ) + " cm"
+
             
 
 

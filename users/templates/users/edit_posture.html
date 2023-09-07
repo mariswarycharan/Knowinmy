@@ -18,8 +18,13 @@
     </form>
     <br><br>
     <div id="video" class="container d-flex align-items-center justify-content-center">
-        <input class="btn btn-primary" onclick="trainer()" type="button" value="Train">
+        <input class="btn btn-primary" onclick="pre_trainer()" type="button" value="Train">
     </div>
+        
+    <h2 id = "countdown_train_text_display_tag_id"></h2>
+    <img style = "padding-left:320px;" src="" id = "countdown_train_tag_id" />
+
+
     <video class="input_video5" style="display:none;"></video>
     <div id="train" class="card shadow mb-4 mt-4" style="display:none;">
         <div class="card-header py-3 d-flex justify-content-around ">
@@ -68,11 +73,27 @@
         } else {
           console.error('Speech synthesis not supported in this browser.');
         }
-      }
+    }
       
- 
+    function pre_trainer(){
+    
+    document.getElementById("countdown_train_text_display_tag_id").innerHTML = "Training process starts in 10 seconds"
+    playTextAsAudio("Training process starts in 10 seconds",0.6,1)
+    document.getElementById("countdown_train_tag_id").src = "/media/count_animation.gif"
+    document.getElementById("countdown_train_tag_id").width = "600"
+    document.getElementById("countdown_train_tag_id").height = "300"
+    const myTimeout = setTimeout(trainer, 13000);
+
+    }
+    
 
     function trainer() {
+
+        document.getElementById("countdown_train_tag_id").src = ""
+        document.getElementById("countdown_train_text_display_tag_id").innerHTML = ""
+        document.getElementById("countdown_train_tag_id").width = "0"
+        document.getElementById("countdown_train_tag_id").height = "0"
+
         document.getElementById("train").style.display = "block";
         document.getElementById("train").scrollIntoView({ behavior: "smooth" })
         const video5 = document.getElementsByClassName('input_video5')[0];
@@ -264,6 +285,8 @@
             });
         
     }
+
+
 
 </script>
 
