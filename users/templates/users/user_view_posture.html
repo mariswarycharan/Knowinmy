@@ -79,8 +79,11 @@
                 <div class="col-2"></div>
                 <div class="col-6" id="snapshot">
                 </div>
-                <h3  style = "padding-left: 250px;" id = "accurary_tag_id" >Accuracy => </h3>
 
+                <h3  style = "padding-left:120px;" id = "accurary_tag_id" >Accuracy => </h3>
+                <h4 style = "padding-left:550px;" id = "wroung_keep_pose_tag_id" ></h4>
+
+                
             </div>
         </div>
     </div>
@@ -281,7 +284,10 @@
             checker = []
             var green = []
             var red = []
-            
+            var wroung_keep_pose_name_list = [];
+            all_body_angle_list = {0:"left_hand_elbow", 1:"right_hand_elbow", 2:"left_shoulder",3:"right_shoulder",4: "left_hip", 5:"right_hip", 6:"left_knee",7: "right_knee"}
+
+
             
         
             if (isBegin){ 
@@ -295,11 +301,20 @@
                         checker.push(true)
                     }    
                     else{
+                        wroung_keep_pose_name_list.push(all_body_angle_list[i])
                         red.push(connector_points[i])  
                         checker.push(false)
                         break
                     }
                 }
+
+                
+                document.getElementById("wroung_keep_pose_tag_id").innerHTML = "Wrongly assumed poses are " + wroung_keep_pose_name_list.join(', ')
+
+                
+
+
+
                     
 
                 if (checker.every(check => check == true)){
@@ -368,7 +383,12 @@
 
                 playTextAsAudio( "You have completed the yoga exercise successfully." ,0.4, 1)
 
+                // Reload the current page
+                window.location.reload();
+
+
             }
+            
             
             document.getElementsByClassName("m-0 font-weight-bold text-primary").innerHTML =  score.toString()
             
@@ -528,17 +548,17 @@
             dZ = dZ.toFixed(2);
             // console.log(dZ + " cm");
             // console.log(avg)
-            document.getElementById("distance_bt_camera_man_tag_id").innerHTML = "Stand away from the laptop at a distance between " + String(avg)  + "cm and "+ String(Number(avg) + 20) + " cm"
+            document.getElementById("distance_bt_camera_man_tag_id").innerHTML = "Stand away from the laptop at a distance between " + String(avg)  + "cm and "+ String(Number(avg) + 30) + " cm"
             
 
 
             if (count_text_to_audio_stand_instruction == true ) {
-                playTextAsAudio("Stand away from the laptop at a distance between " + String(avg)  + "cm and "+ String(Number(avg) + 20) + " cm", 0.4, 1)
+                playTextAsAudio("Stand away from the laptop at a distance between " + String(avg)  + "cm and "+ String(Number(avg) + 30) + " cm", 0.4, 1)
                 count_text_to_audio_stand_instruction = false;
                 
             }
 
-            if (dZ > avg && dZ < avg + 20 && dZ != 'Infinity') {
+            if (dZ > avg && dZ < avg + 30 && dZ != 'Infinity') {
                 console.log(dZ)
                 console.log('open')
                 
