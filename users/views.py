@@ -30,6 +30,9 @@ def register(request):
         if user_type == "Trainer":
             Trainer_access =  Trainer_access_model.objects.create(user=user)
             Trainer_access.save()
+        if user_type == "Student":
+            Student_access =  Student_data_model.objects.create(user=user)
+            Student_access.save()
         
         return redirect ('login')
     return render(request , "users/user_register.html")
@@ -58,16 +61,30 @@ def Trainer_approval_function(request):
     
     context = {
      "user_requests" : user_requests,
-        'is_trainer': True,
+     'is_trainer': True,
      
     }
-    
     return render(request=request,template_name="users/Trainer_approval_Page.html",context=context)
     
- 
 def Add_Student(request):
-    context = {
+    if request.method == "POST":
+        id = request.POST.get("id")
+        decision = request.POST.get("decision")
+        student_access = Student_data_model.objects.get(id=id)
+        student_access.student_status = decision
+        trainer1=Trainer_access_model.objects.get(user=request.user)
+        student_access.trainer=trainer1
+        student_access.save()
         
+        if decision == "ACCEPT":
+            user = student_access.user
+            user_obj = User.objects.get(id=user.id)
+            student_group = Group.objects.get(name='Student')
+            user_obj.groups.add(student_group)
+            user_obj.save()
+
+    context = {
+        'user':Student_data_model.objects.filter(student_status ="PENDING"),
     }
     return render(request=request,template_name="users/add_student_page.html",context=context)
      
@@ -79,17 +96,16 @@ def user_login(request):
         password = request.POST.get("password")
         User_obj = User.objects.get(email=email)
         user = auth.authenticate(username=User_obj.username,password=password)
-        print(User_obj.username,password,user)
+        print("loginedddddddddddddddd", User_obj.username,password,user)
         if user is not None :
-    
-                login(request,user)
-                print("#########################################################")
-                return redirect("staff_dashboard")
+            login(request,user)
+            for group in request.user.groups.all() :
+                if group.name == 'Trainer' or group.name == 'Student':
+                    return redirect("staff_dashboard")
+
+            return redirect("home")
 
     return render(request,"users/login.html")
-
-
-
 
 @login_required
 @user_passes_test(check_trainer)

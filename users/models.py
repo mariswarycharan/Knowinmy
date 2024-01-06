@@ -29,26 +29,6 @@ class Posture(models.Model):
     is_active = models.BooleanField(default=True)
 
 
-
-# user data model
-class Trainer_access_model(models.Model):
-    PENDING = "PENDING"
-    ACCEPT = "ACCEPT"
-    REJECT = "REJECT"
-    status_choices = (
-        (
-            PENDING,'PENDING'
-        ),
-        (
-            ACCEPT,'ACCEPT'
-        ),
-        (
-            REJECT,'REJECT'
-        ),
-    )
-    user = models.ForeignKey(User,related_name="related_user_data",on_delete=models.CASCADE)
-    trainer_status = models.CharField(null=True,max_length=30,blank=True,choices = status_choices,default='PENDING')
-    
 status_choices = (
         (
             'PENDING','PENDING'
@@ -60,9 +40,16 @@ status_choices = (
             'REJECT','REJECT'
         ),
     )
+
+# user data model
+class Trainer_access_model(models.Model):
+    user = models.ForeignKey(User,related_name="related_user_data",on_delete=models.CASCADE)
+    trainer_status = models.CharField(null=True,max_length=30,blank=True,choices = status_choices,default='PENDING')
+  
+
 class Student_data_model(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE)
-    trainer = models.ForeignKey(Trainer_access_model,on_delete=models.CASCADE)
+    trainer = models.ForeignKey(Trainer_access_model,on_delete=models.CASCADE,null=True,default=None)
     student_status = models.CharField(null=True,max_length=30,blank=True,choices = status_choices,default='PENDING')
 
     
