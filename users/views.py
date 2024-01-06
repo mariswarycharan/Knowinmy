@@ -64,6 +64,13 @@ def Trainer_approval_function(request):
     
     return render(request=request,template_name="users/Trainer_approval_Page.html",context=context)
     
+ 
+def Add_Student(request):
+    context = {
+        
+    }
+    return render(request=request,template_name="users/add_student_page.html",context=context)
+     
     
 def user_login(request):
     if request.method == "POST":

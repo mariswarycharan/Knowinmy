@@ -50,4 +50,8 @@ class Trainer_access_model(models.Model):
     trainer_status = models.CharField(null=True,max_length=30,blank=True,choices = status_choices,default='PENDING')
     
 
+class Student_data_model(models.Model):
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    trainer = models.ForeignKey(Trainer_access_model,on_delete=models.CASCADE)
 
+    

@@ -46,14 +46,16 @@
             <!-- Divider -->
             <hr class="sidebar-divider my-0">
 
-            {% if is_trainer %}
-            <li class="nav-item active">
-                <a class="nav-link" href="{% url 'view-trained' %}">
-                    <i class="fas fa-fw fa-tachometer-alt"></i>
-                    <span>Train</span>
-                </a>
-            </li>
-            {% endif %}
+            {% for group in request.user.groups.all %}
+                {% if group.name == 'Trainer'  %}
+                    <li class="nav-item active">
+                        <a class="nav-link" href="{% url 'view-trained' %}">
+                            <i class="fas fa-fw fa-tachometer-alt"></i>
+                            <span>Train</span>
+                        </a>
+                    </li>
+                {% endif %}
+            {% endfor %}
         
 
             <hr class="sidebar-divider my-0">
@@ -75,6 +77,20 @@
                 </a>
             </li>
             {% endif %}
+
+            {% for group in request.user.groups.all %}
+                {% if group.name == 'Trainer' and user.is_superuser == false %}
+                    <li class="nav-item active">
+                        <a class="nav-link" href="{% url 'Trainer-approval' %}">
+                            <i class="fas fa-fw fa-tachometer-alt"></i>
+                            <span> Dashboard </span>
+                        </a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+
+
 
             
             <hr class="sidebar-divider my-0">
