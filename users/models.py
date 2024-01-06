@@ -49,9 +49,20 @@ class Trainer_access_model(models.Model):
     user = models.ForeignKey(User,related_name="related_user_data",on_delete=models.CASCADE)
     trainer_status = models.CharField(null=True,max_length=30,blank=True,choices = status_choices,default='PENDING')
     
-
+status_choices = (
+        (
+            'PENDING','PENDING'
+        ),
+        (
+            'ACCEPT','ACCEPT'
+        ),
+        (
+            'REJECT','REJECT'
+        ),
+    )
 class Student_data_model(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE)
     trainer = models.ForeignKey(Trainer_access_model,on_delete=models.CASCADE)
+    student_status = models.CharField(null=True,max_length=30,blank=True,choices = status_choices,default='PENDING')
 
     
