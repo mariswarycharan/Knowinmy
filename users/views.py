@@ -79,12 +79,18 @@ def user_login(request):
         password = request.POST.get("password")
         User_obj = User.objects.get(email=email)
         user = auth.authenticate(username=User_obj.username,password=password)
-        print(User_obj.username,password,user)
+        print("loginedddddddddddddddd", User_obj.username,password,user)
         if user is not None :
-    
-                login(request,user)
-                print("#########################################################")
-                return redirect("staff_dashboard")
+            login(request,user)
+            for group in request.user.groups.all() :
+                if group.name == 'Trainer' or group.name == 'Student':
+                    return redirect("staff_dashboard")
+
+            return redirect("home")
+                
+                    
+        
+        
 
     return render(request,"users/login.html")
 

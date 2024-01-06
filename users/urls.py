@@ -28,7 +28,7 @@ urlpatterns =[
     path("Trainer_approval/",Trainer_approval_function,name="Trainer-approval"),
     
     # add student 
-    path("Trainer_approval/",Add_Student,name="Add_Student"),
+    path("add_Student/",Add_Student,name="Student-approval"),
     
     
     
