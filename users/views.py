@@ -1,4 +1,4 @@
-from django.shortcuts import render,redirect
+from django.shortcuts import render,redirect,HttpResponseRedirect
 from django.http import JsonResponse
 from datetime import datetime
 from django.contrib.auth.models import User
@@ -6,13 +6,15 @@ from yoga.settings import BASE_DIR, MEDIA_ROOT
 from .models import *
 from .forms import *
 from django.contrib.auth import authenticate,login
+from django.contrib import auth
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required,user_passes_test
 from .permissions import *
+from django.contrib.auth.models import User, Group
+
 import ast
 import pandas as pd
 import base64
-
 
 def register(request):
     if request.method == "POST":
@@ -20,20 +22,66 @@ def register(request):
         first_name = request.POST.get("first_name")
         last_name = request.POST.get("last_name")
         password = request.POST.get("password")
-        User.objects.create_user(username=email,email=email,first_name=first_name,last_name=last_name,password=password)
+        user_type = request.POST.get("user_type")
+        
+        user = User.objects.create_user(username=email,email=email,first_name=first_name,last_name=last_name,password=password)
+        user.save()
+
+        if user_type == "Trainer":
+            Trainer_access =  Trainer_access_model.objects.create(user=user)
+            Trainer_access.save()
+        
         return redirect ('login')
     return render(request , "users/user_register.html")
 
+@login_required
+@user_passes_test(check_trainer)   
+def Trainer_approval_function(request):
 
+    if request.method == "POST":
+        id = request.POST.get("id")
+        decision = request.POST.get("decision")
+        
+        train_access = Trainer_access_model.objects.get(id=id)
+        train_access.trainer_status = decision
+        train_access.save()
+        
+        if decision == "ACCEPT":
+            user = train_access.user
+            user_obj = User.objects.get(id=user.id)
+            group_name = 'Trainer'
+            trainer_group = Group.objects.get(name=group_name)
+            user_obj.groups.add(trainer_group)
+            user_obj.save()
+            
+    user_requests = Trainer_access_model.objects.filter(trainer_status = Trainer_access_model.PENDING)
+    
+    context = {
+     "user_requests" : user_requests,
+        'is_trainer': True,
+     
+    }
+    
+    return render(request=request,template_name="users/Trainer_approval_Page.html",context=context)
+    
+    
 def user_login(request):
     if request.method == "POST":
-        username = request.POST.get("email")
+        
+        email = request.POST.get("email")
         password = request.POST.get("password")
-        user = authenticate(username=username,password=password)
-        if user is not None:
-            login(request,user)
-            return redirect("home")
+        User_obj = User.objects.get(email=email)
+        user = auth.authenticate(username=User_obj.username,password=password)
+        print(User_obj.username,password,user)
+        if user is not None :
+    
+                login(request,user)
+                print("#########################################################")
+                return redirect("staff_dashboard")
+
     return render(request,"users/login.html")
+
+
 
 
 @login_required
@@ -42,6 +90,8 @@ def view_trained(request):
     trained_asanas = Asana.objects.filter(created_by = request.user)
     return render(request,"users/view_trained.html",{
         "trained_asanas":trained_asanas,
+        'is_trainer': True,
+
     })
 
 
@@ -51,6 +101,8 @@ def view_posture(request,asana_id):
     postures = Posture.objects.filter(asana=Asana.objects.get(id=asana_id)).order_by('step_no')
     return render(request,"users/view_posture.html",{
         "postures":postures,
+        'is_trainer': True,
+        
     })
 
 
@@ -71,14 +123,31 @@ def create_asana(request):
             return redirect("view-trained")
     return render(request,"users/create_asana.html",{
         'form':form,
+        'is_trainer': True,
+
     })
 
 
 @login_required
-@user_passes_test(check_student)
+# @user_passes_test(check_student)
 def home(request):
     return render(request,"users/home.html")
 
+@login_required
+@user_passes_test(check_student)
+def staff_dashboard_function(request):
+    user = request.user
+
+    if user.groups.filter(name='Trainer').exists() or user.is_superuser:
+        is_trainer = True
+    else:
+        is_trainer = False
+
+    context = {
+        'is_trainer': is_trainer,
+    }
+    
+    return render(request,"users/staff_dashboard.html",context)
 
 @login_required
 @user_passes_test(check_trainer)
@@ -106,6 +175,8 @@ def edit_posture(request,posture_id):
     return render(request, "users/edit_posture.html",{
         "form":form,
         "posture":posture,
+        'is_trainer': True,
+        
     })
 
 
@@ -120,8 +191,12 @@ def user_view_asana(request):
             pass
         else:
             trained_asanas.append(asana)
+            
+            
     return render(request,"users/user_view_asana.html",{
         "asanas":trained_asanas,
+        'is_trainer': True,
+
     })
 
 
@@ -131,6 +206,8 @@ def user_view_posture(request,asana_id):
     postures = Posture.objects.filter(asana=Asana.objects.get(id=asana_id)).order_by('step_no')
     return render(request,"users/user_view_posture.html",{
         "postures":postures,
+        'is_trainer': True,
+        
     })
 
 
@@ -160,3 +237,6 @@ def get_posture_dataset(request):
         return JsonResponse(data)
     else:
         return JsonResponse(status=400,data={"error":"Bad request"})
+    
+
+    

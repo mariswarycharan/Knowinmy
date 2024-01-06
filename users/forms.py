@@ -13,3 +13,4 @@ class EditPostureForm(ModelForm):
     class Meta:
         model = Posture
         fields = ['name','snap_shot']
+        

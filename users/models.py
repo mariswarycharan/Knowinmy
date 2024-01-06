@@ -30,4 +30,24 @@ class Posture(models.Model):
 
 
 
+# user data model
+class Trainer_access_model(models.Model):
+    PENDING = "PENDING"
+    ACCEPT = "ACCEPT"
+    REJECT = "REJECT"
+    status_choices = (
+        (
+            PENDING,'PENDING'
+        ),
+        (
+            ACCEPT,'ACCEPT'
+        ),
+        (
+            REJECT,'REJECT'
+        ),
+    )
+    user = models.ForeignKey(User,related_name="related_user_data",on_delete=models.CASCADE)
+    trainer_status = models.CharField(null=True,max_length=30,blank=True,choices = status_choices,default='PENDING')
+    
+
 
