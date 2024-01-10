@@ -69,8 +69,8 @@
 
             <hr class="sidebar-divider my-0">
 
-            {% for group in request.user.groups.all %}
-                {% if group.name != 'Trainer' and group.name == 'Student' %}
+      
+                {% if user.is_superuser %}
                     <li class="nav-item active">
                         <a class="nav-link" href="{% url 'Trainer-approval' %}">
                             <i class="fas fa-fw fa-tachometer-alt"></i>
@@ -78,7 +78,7 @@
                         </a>
                     </li>
                 {% endif %}
-            {% endfor %}
+
             
 
             {% for group in request.user.groups.all %}
