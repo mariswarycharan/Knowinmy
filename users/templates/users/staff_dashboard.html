@@ -70,7 +70,7 @@
             <hr class="sidebar-divider my-0">
 
             {% for group in request.user.groups.all %}
-                {% if group.name != 'Trainer' and user.is_superuser %}
+                {% if group.name != 'Trainer' and group.name == 'Student' %}
                     <li class="nav-item active">
                         <a class="nav-link" href="{% url 'Trainer-approval' %}">
                             <i class="fas fa-fw fa-tachometer-alt"></i>
@@ -82,9 +82,9 @@
             
 
             {% for group in request.user.groups.all %}
-                {% if group.name == 'Trainer'  %}
+                {% if group.name == 'Trainer' and group.name != 'Student' %}
                     <li class="nav-item active">
-                        <a class="nav-link" href="{% url 'Student-approval' %}">
+                        <a class="nav-link" href="{% url 'Trainer-dashboard' %}">
                             <i class="fas fa-fw fa-tachometer-alt"></i>
                             <span> Dashboard </span>
                         </a>

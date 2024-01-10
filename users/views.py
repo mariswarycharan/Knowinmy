@@ -57,7 +57,7 @@ def Trainer_approval_function(request):
             user_obj.groups.add(trainer_group)
             user_obj.save()
             
-    user_requests = Trainer_access_model.objects.filter(trainer_status = Trainer_access_model.PENDING)
+    user_requests = Trainer_access_model.objects.filter(trainer_status = "PENDING")
     
     context = {
      "user_requests" : user_requests,
@@ -65,7 +65,19 @@ def Trainer_approval_function(request):
      
     }
     return render(request=request,template_name="users/Trainer_approval_Page.html",context=context)
+
+@login_required
+@user_passes_test(check_trainer)  
+def Trainer_dashboard(request):
     
+    trainer = Trainer_access_model.objects.get(user=request.user)
+    students = Student_data_model.objects.filter(trainer=trainer)
+    context = {
+        "students":students,
+    }
+    return render(request,"users/trainer_dashboard.html",context=context)
+
+
 def Add_Student(request):
     if request.method == "POST":
         id = request.POST.get("id")

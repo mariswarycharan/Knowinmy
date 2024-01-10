@@ -29,10 +29,8 @@ urlpatterns =[
     
     # add student 
     path("student_approval/",Add_Student,name="Student-approval"),
-    
-    
-    
-    
+    path("trainer_dashboard/",Trainer_dashboard,name="Trainer-dashboard"),
+   
     
     #api
     path("get_posture_dataset/",get_posture_dataset,name="get-posture-dataset"),

@@ -52,4 +52,3 @@ class Student_data_model(models.Model):
     trainer = models.ForeignKey(Trainer_access_model,on_delete=models.CASCADE,null=True,default=None)
     student_status = models.CharField(null=True,max_length=30,blank=True,choices = status_choices,default='PENDING')
 
-    
