@@ -1,0 +1,13 @@
+{% extends 'users/staff_dashboard.html' %}
+{% load crispy_forms_tags %}
+{% block body %}
+<div class="container">
+    <form method="post" action="">
+        {% csrf_token %}
+        {{form|crispy}}
+        <input class="btn btn-primary" type="submit" value="Submit">
+    </form>
+</div>
+
+
+{% endblock %}

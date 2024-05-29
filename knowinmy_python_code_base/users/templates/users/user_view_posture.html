@@ -1,0 +1,633 @@
+{% extends 'users/staff_dashboard.html' %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.1/control_utils.js"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.2/drawing_utils.js"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.2/pose.js" crossorigin="anonymous"></script>
+
+<!-- Distance -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.6/control_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+{% endblock %}
+{% block body %}
+<div class="container mt-5">
+    <div class="row">
+        {% for posture in postures %}
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="font-weight-bold text-primary mb-1">
+                                {{posture.name}}</div>
+                            <div class="mb-0 font-weight-bold text-gray-800">{% if posture.dataset %} Trained {% else %}
+                                Not Trained {% endif %}</div>
+                        </div>
+                        <div class="col-auto">
+                            <a href="#" onclick="loadTest({{posture.id}})">
+                                <div class="col-auto">
+                                    <i class="fas fa-arrow-right fa-2x text-gray-300"></i>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+        <h4 id = "distance_bt_camera_man_tag_id" ></h4>
+        <h2 id = "current_distance_tag_id" ></h2>
+
+        
+
+
+        {% endfor%}
+    </div>
+    <video class="input_video5" style="display:none;"></video>
+
+    <!-- Distance Div -->
+    <div class="dis-container">
+        <!-- <video class="input_video" style="display: none;"></video> -->
+        <div class="canvas-container">
+          <canvas class="output_canvas">
+          </canvas>
+        </div>
+        <div class="control-panel" style="display: none;">
+        </div>
+    </div>
+
+    <div class="counter" style="display: none;"> 
+        <h2 id = "Get_ready_comment_tag_id" >Get ready to begin the yoga pose in 5 seconds.</h2>
+
+        <h3 id="countdownDisplay">5</h3>
+    </div>
+
+    <div id="train" class="card shadow mb-4 mt-4" style="display:none;">
+
+        <div class="card-header py-3 d-flex justify-content-around ">
+            <h6 class="m-0 font-weight-bold text-primary">KnowInMy - Train</h6>
+            <h6 id = "testing_count_tag_id" class="m-0 font-weight-bold text-primary">Count => </h6>
+        </div>
+
+        <div class="card-body">
+            <div class="row">
+                <div class="col-4">
+                    <canvas class="output5" width="480px" height="480px"></canvas>
+                </div>
+                <div class="col-2"></div>
+                <div class="col-6" id="snapshot">
+                </div>
+
+                <h3  style = "padding-left:120px;" id = "accurary_tag_id" >Accuracy => </h3>
+                <h4 style = "padding-left:550px;" id = "wroung_keep_pose_tag_id" ></h4>
+
+                
+            </div>
+        </div>
+    </div>
+    <div style="visibility: hidden;" class="control5"></div>
+</div>
+
+
+
+<script>
+    var array
+    var snap_shot;
+    let processFurther = true;
+    var count_text_to_audio_stand_instruction = true;
+    let avg
+
+    async function loadTest(posture_id) {
+        response = await fetch(`/get_posture_dataset?posture_id=${posture_id}`)
+        response = await response.json()
+        array = await response["dataset"]
+
+        avg = getAverage(array[8])
+        
+        snap_shot = await response["snapshot"]
+        await distance()
+    }
+
+    function findMode(arr) {
+        const frequencyMap = {};
+        let maxFrequency = 0;
+        let mode;
+      
+        for (const item of arr) {
+          if (frequencyMap[item]) {
+            frequencyMap[item]++;
+          } else {
+            frequencyMap[item] = 1;
+          }
+      
+          if (frequencyMap[item] > maxFrequency) {
+            maxFrequency = frequencyMap[item];
+            mode = item;
+          }
+        }
+      
+        return mode;
+      }
+
+
+      
+      // Function to count the occurrences of each element in an array and check if a person is standing at a specific distance. 
+   
+
+    function getAverage(arr) {
+        const countMap = {};
+        var numbers = arr;
+        // Loop through the array and count the occurrences of each element
+        for (const num of numbers) {
+        if (countMap[num]) {
+            countMap[num]++;
+        } else {
+            countMap[num] = 1;
+        }
+        }
+
+        // Find the element with the highest count
+        let maxCount = 0;
+        let mostFrequentElement;
+
+        for (const num in countMap) {
+        if (countMap[num] > maxCount) {
+            maxCount = countMap[num];
+            mostFrequentElement = num;
+        }
+        }
+        return mostFrequentElement
+       
+    }
+
+
+    function playTextAsAudio(text, rate = 0.4, pitch = 1) {
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance();
+          const voices = speechSynthesis.getVoices();
+      
+          
+          // Set the rate (optional)
+          utterance.rate = rate;
+      
+          // Set the pitch (optional)
+          utterance.pitch = pitch;
+      
+          // Set the text to be spoken
+          utterance.text = text;
+      
+          // Speak the text
+          speechSynthesis.speak(utterance);
+        } else {
+          console.error('Speech synthesis not supported in this browser.');
+        }
+      }
+      
+    
+      
+
+
+    function tester() {
+        document.getElementById("train").style.display = "block";
+        document.getElementById("train").scrollIntoView({ behavior: "smooth" })
+        const out5 = document.getElementsByClassName('output5')[0];
+        const controlsElement5 = document.getElementsByClassName('control5')[0];
+        const video5 = document.getElementsByClassName('input_video5')[0];
+        const canvasCtx5 = out5.getContext('2d');
+        const pi = Math.PI
+        const fpsControl = new FPS();
+        var score = 0
+        var isBegin = true
+        snapshot = document.getElementById("snapshot")
+        canvasCtx5.font = "30px Comic Sans MS";
+        canvasCtx5.fillStyle = "red";
+
+        function zColor(data) {
+            const z = clamp(data.from.z + 0.5, 0, 1);
+            return `rgba(0, ${255 * z}, ${255 * (1 - z)}, 1)`;
+        }
+
+        function calculateAngle(landmark1, landmark2, landmark3) {
+            angle = (Math.atan2(landmark3.y - landmark2.y, landmark3.x - landmark2.x) - Math.atan2(landmark1.y - landmark2.y, landmark1.x - landmark2.x)) * (180 / pi)
+            if (angle < 0) {
+                angle *= -1
+            }
+            if (angle > 180) {
+                angle = 360 - angle
+            }
+            return Math.round(angle)
+        }
+
+        var mode_list = [];
+        var sum_of_mode_list = 0;
+
+                
+        for (let j = 0 ; j < array.length - 1; j++){
+            mode_value = findMode(array[j])
+            mode_list.push(mode_value)
+        }
+        sum_of_mode_list = mode_list.reduce(function (accumulator, currentValue) {
+            return accumulator + currentValue;
+          }, 0);
+
+        
+        
+        function onResultsPose(results) {
+            fpsControl.tick();
+            canvasCtx5.save();
+            canvasCtx5.clearRect(0, 0, out5.width, out5.height);
+            canvasCtx5.font = "30px Arial";
+            canvasCtx5.fillText(score,10,50);
+            canvasCtx5.drawImage(
+                results.image, 0, 0, out5.width, out5.height);
+            drawConnectors(
+                canvasCtx5, results.poseLandmarks, POSE_CONNECTIONS, {
+                color:"#ffffff"
+            });
+
+            /*drawConnectors(
+                canvasCtx5, [results.poseLandmarks[11],results.poseLandmarks[12]], POSE_CONNECTIONS, {
+                color:"#00FF00"
+            });
+            */
+
+            //since here the frame is flipped left will be right and right will be left
+            // to get the index value refer the https://mediapipe.dev/images/mobile/pose_tracking_full_body_landmarks.png
+            // 11 which means left shoulder, since here it is flipped 11 means right shoulder
+            left_hand_elbow = calculateAngle(results.poseLandmarks[12], results.poseLandmarks[14], results.poseLandmarks[16])
+            
+            right_hand_elbow = calculateAngle(results.poseLandmarks[11], results.poseLandmarks[13], results.poseLandmarks[15])
+            left_shoulder = calculateAngle(results.poseLandmarks[14], results.poseLandmarks[12], results.poseLandmarks[24])
+            
+            right_shoulder = calculateAngle(results.poseLandmarks[13], results.poseLandmarks[11], results.poseLandmarks[23])
+            left_hip = calculateAngle(results.poseLandmarks[12], results.poseLandmarks[24], results.poseLandmarks[26])
+            right_hip = calculateAngle(results.poseLandmarks[11], results.poseLandmarks[23], results.poseLandmarks[25])
+            left_knee = calculateAngle(results.poseLandmarks[24], results.poseLandmarks[26], results.poseLandmarks[28])
+            right_knee = calculateAngle(results.poseLandmarks[23], results.poseLandmarks[25], results.poseLandmarks[27])
+            left_wrist_cordinate = Math.round(results.poseLandmarks[16].x * out5.width)
+            right_wrist_cordinate = Math.round(results.poseLandmarks[15].x * out5.width)
+            // two_hand_distance = Math.abs(right_wrist_cordinate - left_wrist_cordinate)
+            calculated = [left_hand_elbow, right_hand_elbow, left_shoulder,right_shoulder, left_hip, right_hip, left_knee, right_knee]
+            connector_points = {
+                
+                0:[results.poseLandmarks[11],results.poseLandmarks[13],results.poseLandmarks[15]],
+                1:[results.poseLandmarks[12],results.poseLandmarks[14],results.poseLandmarks[16]],
+                2:[results.poseLandmarks[13],results.poseLandmarks[11],results.poseLandmarks[23]],
+                3:[results.poseLandmarks[14],results.poseLandmarks[12],results.poseLandmarks[24]],
+                4:[results.poseLandmarks[11],results.poseLandmarks[23],results.poseLandmarks[25]],
+                5:[results.poseLandmarks[12],results.poseLandmarks[24],results.poseLandmarks[26]],
+                6:[results.poseLandmarks[23],results.poseLandmarks[25],results.poseLandmarks[27]],
+                7:[results.poseLandmarks[24],results.poseLandmarks[26],results.poseLandmarks[28]]
+            }
+            checker = []
+            var green = []
+            var red = []
+            var wroung_keep_pose_name_list = [];
+            all_body_angle_list = {0:"left_hand_elbow", 1:"right_hand_elbow", 2:"left_shoulder",3:"right_shoulder",4: "left_hip", 5:"right_hip", 6:"left_knee",7: "right_knee"}
+
+
+            
+        
+            if (isBegin){ 
+
+
+                for(i=0;i<array.length - 1;i++){
+                    
+                    if (array[i].includes(calculated[i])){
+
+                        green.push(connector_points[i])  
+                        checker.push(true)
+                    }    
+                    else{
+                        wroung_keep_pose_name_list.push(all_body_angle_list[i])
+                        red.push(connector_points[i])  
+                        checker.push(false)
+                        break
+                    }
+                }
+
+                
+                document.getElementById("wroung_keep_pose_tag_id").innerHTML = "Wrongly assumed poses are " + wroung_keep_pose_name_list.join(', ')
+
+                
+
+
+
+                    
+
+                if (checker.every(check => check == true)){
+
+                    score += 1
+
+                    sum_each_angle_of_pose = left_hand_elbow + right_hand_elbow + left_shoulder + right_shoulder +  left_hip +  right_hip +  left_knee +  right_knee
+                    accuracy = (sum_each_angle_of_pose/sum_of_mode_list)*100;
+
+                    if (accuracy > 100) {
+                        accuracy = 100 - (accuracy - 100);
+                        accuracy = Math.round(accuracy * 100) / 100; // Round to 2 decimal places
+                    } else {
+                        accuracy = Math.round(accuracy * 100) / 100; // Round to 2 decimal places
+                    }
+
+                    document.getElementById("accurary_tag_id").innerHTML = "Accurary => " + String(accuracy) + " % "
+
+
+                }
+                canvasCtx5.fillText(score, out5.width - 50,25);
+                    
+
+                // drawing red color circle for wroung keep pose
+                /*for(i=0;i<green.length;i++){
+                    //console.table(green[i])
+                    drawConnectors(
+                    canvasCtx5, green[i], POSE_CONNECTIONS, {
+                    color: "#00FF00"
+                    });
+                }
+                */
+
+                for(i=0;i<red.length;i++){
+                    drawConnectors(
+                    canvasCtx5, red[i], POSE_CONNECTIONS, {
+                    color: "#FF0000",
+                    
+                    });
+                }
+
+                for(i=0;i<red.length;i++){
+
+                    drawLandmarks(
+                        canvasCtx5,
+                        [red[i][1]],POSE_LANDMARKS,
+                        { color: zColor, fillColor: '#FF0000' });
+                }
+                
+            }
+            
+            else{
+                canvasCtx5.fillText("Get Reddy !!", out5.width - 200,25);
+            }
+
+            document.getElementById("testing_count_tag_id").innerHTML = "Count => " + String(score)
+
+
+            if (score == 50) {
+                const stream = video5.srcObject;
+                const tracks = stream.getTracks();
+                tracks.forEach((track) => {
+                    track.stop();
+                });
+                document.getElementById("train").style.display = "none"
+
+                playTextAsAudio( "You have completed the yoga exercise successfully." ,0.4, 1)
+
+                // Reload the current page
+                window.location.reload();
+
+
+            }
+            
+            
+            document.getElementsByClassName("m-0 font-weight-bold text-primary").innerHTML =  score.toString()
+            
+            
+            /*drawLandmarks(
+                canvasCtx5,
+                Object.values(POSE_LANDMARKS_LEFT)
+                    .map(index => results.poseLandmarks[index]),
+                { color: zColor, fillColor: '#FF0000' });
+            drawLandmarks(
+                canvasCtx5,
+                Object.values(POSE_LANDMARKS_RIGHT)
+                    .map(index => results.poseLandmarks[index]),
+                { color: zColor, fillColor: '#00FF00' });
+            */
+
+        
+            /*drawLandmarks(
+                canvasCtx5,
+                Object.values(POSE_LANDMARKS_NEUTRAL)
+                    .map(index => results.poseLandmarks[index]),
+                { color: zColor, fillColor: '#0f0f0f' }); 
+            */
+            
+            canvasCtx5.restore();
+        }
+
+        const pose = new Pose({
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.2/${file}`;
+            }
+        });
+        pose.onResults(onResultsPose);
+
+        const camera = new Camera(video5, {
+            onFrame: async () => {
+                await pose.send({ image: video5 });
+            },
+            width: 480,
+            height: 480
+        });
+        camera.start();
+
+        new ControlPanel(controlsElement5, {
+            selfieMode: true,
+            upperBodyOnly: false,
+            smoothLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5,
+        })
+            .add([
+                new StaticText({ title: 'MediaPipe Pose' }),
+                fpsControl,
+                new Toggle({ title: 'Selfie Mode', field: 'selfieMode' }),
+                new Toggle({ title: 'Upper-body Only', field: 'upperBodyOnly' }),
+                new Toggle({ title: 'Smooth Landmarks', field: 'smoothLandmarks' }),
+                new Slider({
+                    title: 'Min Detection Confidence',
+                    field: 'minDetectionConfidence',
+                    range: [0, 1],
+                    step: 0.01
+                }),
+                new Slider({
+                    title: 'Min Tracking Confidence',
+                    field: 'minTrackingConfidence',
+                    range: [0, 1],
+                    step: 0.01
+                }),
+            ])
+            .on(options => {
+                video5.classList.toggle('selfie', options.selfieMode);
+                pose.setOptions(options);
+            });
+        snapshot.innerHTML = `<img src=${snap_shot} id="snap" width="480px" height="480px">`
+        
+        // setTimeout(() => {
+        //     count = 3
+        //     canvasCtx5.font = "30px Comic Sans MS";
+        //     canvasCtx5.fillStyle = "red";
+        //     const myinterval = setInterval(()=>{
+
+        //         if(count == 0){
+        //             isBegin = true
+        //             clearInterval(myinterval)
+        //         }
+        //         canvasCtx5.fillText(count, out5.width - 50,25);
+        //         count -= 1
+        //     },1000)            
+        // },10000)
+    }
+
+    
+
+    // Distance 
+    function distance() {
+        const controls = window;
+        const drawingUtils = window;
+        const mpFaceMesh = window;
+        const config = {
+            locateFile: (file) => {
+                return (`https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@` +
+                    `${mpFaceMesh.VERSION}/${file}`);
+            }
+        };
+
+        const disContainer = document.querySelector('.dis-container')
+        const canvasElement = document.getElementsByClassName("output_canvas")[0];
+        const controlsElement = document.getElementsByClassName("control-panel")[0];
+        const canvasCtx = canvasElement.getContext("2d");
+
+        const solutionOptions = {
+            selfieMode: true,
+            enableFaceGeometry: false,
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        };
+
+        const fpsControl = new controls.FPS();
+
+        async function onResults(results) {
+
+            if (!processFurther) {
+                return
+            }; 
+
+            document.body.classList.add("loaded");
+            fpsControl.tick();
+            var width = 400;
+            var height = 400;
+            var irisLeftMinX = -1;
+            var irisLeftMaxX = -1;
+            // Draw the overlays.
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            if (results.multiFaceLandmarks) {
+                for (const landmarks of results.multiFaceLandmarks) {
+                    for (const point of FACEMESH_LEFT_IRIS) {
+                        var point0 = landmarks[point[0]];
+                        if (irisLeftMinX == -1 || point0.x * width < irisLeftMinX) {
+                            irisLeftMinX = point0.x * width;
+                        }
+                        if (irisLeftMaxX == -1 || point0.x * width > irisLeftMaxX) {
+                            irisLeftMaxX = point0.x * width;
+                        }
+                    }
+                    drawingUtils.drawConnectors(canvasCtx, landmarks, mpFaceMesh.FACEMESH_LEFT_IRIS, { color: "#30FF30", lineWidth: 1 });
+                }
+            }
+            var dx = irisLeftMaxX - irisLeftMinX;
+            var dX = 11.7;
+            var normalizedFocaleX = 1.40625;
+            var fx = Math.min(width, height) * normalizedFocaleX;
+            var dZ = (fx * (dX / dx)) / 10.0;
+            dZ = dZ.toFixed(2);
+            // console.log(dZ + " cm");
+            // console.log(avg)
+            document.getElementById("distance_bt_camera_man_tag_id").innerHTML = "Stand away from the laptop at a distance between " + String(avg)  + "cm and "+ String(Number(avg) + 30) + " cm"
+            
+            document.getElementById("current_distance_tag_id").innerHTML = "Current Distance => " + String(dZ) + " cm"
+
+            
+
+
+            if (count_text_to_audio_stand_instruction == true ) {
+                playTextAsAudio("Stand away from the laptop at a distance between " + String(avg)  + "cm and "+ String(Number(avg) + 30) + " cm", 0.4, 1)
+                count_text_to_audio_stand_instruction = false;
+                
+            }
+
+            if (dZ > avg && dZ < avg + 30 && dZ != 'Infinity') {
+                console.log(dZ)
+                console.log('open')
+                
+                
+                playTextAsAudio( "You are standing at the correct distance Now Get ready to begin the yoga pose in 5 seconds." ,1, 1)
+
+
+                document.querySelector(".dis-container").style.display = "none";
+                document.querySelector('.counter').style.display = "block";
+
+                let countdown = 5;
+                updateCountdownDisplay(countdown);
+
+                let interval = setInterval(() => {
+                    countdown--;
+                    updateCountdownDisplay(countdown);
+                    if (countdown <= 0) {
+                        clearInterval(interval); 
+                    }
+                }, 1000);
+
+                setTimeout(async () => {
+                    clearInterval(interval);  
+                    document.querySelector('.counter').style.display = "none";
+                    document.getElementById("train").style.display = "block";
+                    await tester();
+                }, 5000);
+
+                processFurther = false;
+                return;
+            } 
+
+            canvasCtx.fillStyle = "red";
+            canvasCtx.font = "30px Arial";
+            canvasCtx.fillText(dZ + " cm", width * 0.60, 40);
+            canvasCtx.restore();
+        }
+
+        const faceMesh = new mpFaceMesh.FaceMesh(config);
+        faceMesh.setOptions(solutionOptions);
+        faceMesh.onResults(onResults);
+
+        new controls.ControlPanel(controlsElement, solutionOptions)
+            .add([
+            fpsControl,
+            new controls.SourcePicker({
+                onFrame: async (input) => {
+                    canvasElement.width = 400;
+                    canvasElement.height = 400;
+                    await faceMesh.send({ image: input });
+                },
+            }),
+        ])  
+
+    }
+
+    function updateCountdownDisplay(countdown) {
+        let countdownElement = document.getElementById('countdownDisplay');
+        if (countdownElement) {
+            countdownElement.innerHTML = countdown.toString();
+        }
+    }
+
+</script>
+{% endblock %}

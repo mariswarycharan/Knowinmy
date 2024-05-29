@@ -1,0 +1,293 @@
+{% extends 'users/staff_dashboard.html' %}
+{% load crispy_forms_tags %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.1/control_utils.js"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.2/drawing_utils.js"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.2/pose.js" crossorigin="anonymous"></script>
+
+{% endblock %}
+{% block body %}
+<div class="container">
+    <form method="post" action="">
+        {% csrf_token %}
+        {{form|crispy}}
+        <input class="btn btn-primary" type="submit" name="meta_details" value="Submit">
+    </form>
+    <br><br>
+    <div id="video" class="container d-flex align-items-center justify-content-center">
+        <input class="btn btn-primary" onclick="pre_trainer()" type="button" value="Train">
+    </div>
+        
+    <h2 id = "countdown_train_text_display_tag_id"></h2>
+    <img style = "padding-left:320px;" src="" id = "countdown_train_tag_id" />
+
+
+    <video class="input_video5" style="display:none;"></video>
+    <div id="train" class="card shadow mb-4 mt-4" style="display:none;">
+        <div class="card-header py-3 d-flex justify-content-around ">
+            <h6 class="m-0 font-weight-bold text-primary">KnowInMy - Train</h6>
+            <h6 id = "training_count_tag_id" class="m-0 font-weight-bold text-primary">Count => </h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-4">
+                    <canvas class="output5" width="480px" height="480px"></canvas>
+                </div>
+                <div class="col-2"></div>
+                <div class="col-6" id="snapshot">
+                </div>
+            </div>
+        </div>
+        <form id="dataset_form" action="" method="post" hidden>
+            {% csrf_token %}
+            <input type="text" name="snapshot" id="snap_form">
+            <input type="text" name="dataset" id="dataset">
+        </form>
+
+
+    </div>
+    <div style="visibility: hidden;" class="control5"></div>
+</div>
+<script>
+
+    function playTextAsAudio(text, rate = 0.4, pitch = 1) {
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance();
+          const voices = speechSynthesis.getVoices();
+      
+          
+          // Set the rate (optional)
+          utterance.rate = rate;
+      
+          // Set the pitch (optional)
+          utterance.pitch = pitch;
+      
+          // Set the text to be spoken
+          utterance.text = text;
+      
+          // Speak the text
+          speechSynthesis.speak(utterance);
+        } else {
+          console.error('Speech synthesis not supported in this browser.');
+        }
+    }
+      
+    function pre_trainer(){
+    
+    document.getElementById("countdown_train_text_display_tag_id").innerHTML = "Training process starts in 10 seconds"
+    playTextAsAudio("Training process starts in 10 seconds",0.6,1)
+    document.getElementById("countdown_train_tag_id").src = "/static/animation/count_animation.gif"
+    document.getElementById("countdown_train_tag_id").width = "600"
+    document.getElementById("countdown_train_tag_id").height = "300"
+    const myTimeout = setTimeout(trainer, 13000);
+
+    }
+    
+
+    function trainer() {
+
+        document.getElementById("countdown_train_tag_id").src = ""
+        document.getElementById("countdown_train_text_display_tag_id").innerHTML = ""
+        document.getElementById("countdown_train_tag_id").width = "0"
+        document.getElementById("countdown_train_tag_id").height = "0"
+
+        document.getElementById("train").style.display = "block";
+        document.getElementById("train").scrollIntoView({ behavior: "smooth" })
+        const video5 = document.getElementsByClassName('input_video5')[0];
+        const out5 = document.getElementsByClassName('output5')[0];
+        const controlsElement5 = document.getElementsByClassName('control5')[0];
+        const canvasCtx5 = out5.getContext('2d');
+        const pi = Math.PI
+        const fpsControl = new FPS();
+        var array = []
+        var count = 0
+        var isSnap = false
+        snapshot = document.getElementById("snapshot")
+
+        function zColor(data) {
+            const z = clamp(data.from.z + 0.5, 0, 1);
+            return `rgba(0, ${255 * z}, ${255 * (1 - z)}, 1)`;
+        }
+
+        function calculateAngle(landmark1, landmark2, landmark3) {
+            angle = (Math.atan2(landmark3.y - landmark2.y, landmark3.x - landmark2.x) - Math.atan2(landmark1.y - landmark2.y, landmark1.x - landmark2.x)) * (180 / pi)
+            if (angle < 0) {
+                angle *= -1
+            }
+            if (angle > 180) {
+                angle = 360 - angle
+            }
+            return Math.round(angle)
+        }
+
+        function onResultsPose(results) {
+            fpsControl.tick();
+            canvasCtx5.save();
+            canvasCtx5.clearRect(0, 0, out5.width, out5.height);
+            if (isSnap) {
+                snapp = document.getElementById('snap')
+                const snap = snapp.getContext('2d');
+                console.log("results" + results.image)
+                snap.drawImage(results.image, 0, 0, out5.width, out5.height)
+                snap.save()
+                document.getElementById("snap_form").value = snapp.toDataURL().replace(/^data:image\/(png|jpg);base64,/, "")
+                isSnap = false
+            }
+            canvasCtx5.drawImage(
+                results.image, 0, 0, out5.width, out5.height);
+            drawConnectors(
+                canvasCtx5, results.poseLandmarks, POSE_CONNECTIONS, {
+                color: (data) => {
+                    const x0 = out5.width * data.from.x;
+                    const y0 = out5.height * data.from.y;
+                    const x1 = out5.width * data.to.x;
+                    const y1 = out5.height * data.to.y;
+
+                    const z0 = clamp(data.from.z + 0.5, 0, 1);
+                    const z1 = clamp(data.to.z + 0.5, 0, 1);
+
+                    const gradient = canvasCtx5.createLinearGradient(x0, y0, x1, y1);
+                    gradient.addColorStop(
+                        0, `rgba(0, ${255 * z0}, ${255 * (1 - z0)}, 1)`);
+                    gradient.addColorStop(
+                        1.0, `rgba(0, ${255 * z1}, ${255 * (1 - z1)}, 1)`);
+                    return gradient;
+                }
+            });
+
+            //since here the frame is flipped left will be right and right will be left
+            // to get the index value refer the https://mediapipe.dev/images/mobile/pose_tracking_full_body_landmarks.png
+            // 11 which means left shoulder, since here it is flipped 11 means right shoulder
+            left_hand_elbow = calculateAngle(results.poseLandmarks[12], results.poseLandmarks[14], results.poseLandmarks[16])
+            
+            right_hand_elbow = calculateAngle(results.poseLandmarks[11], results.poseLandmarks[13], results.poseLandmarks[15])
+            left_shoulder = calculateAngle(results.poseLandmarks[14], results.poseLandmarks[12], results.poseLandmarks[24])
+            
+            right_shoulder = calculateAngle(results.poseLandmarks[13], results.poseLandmarks[11], results.poseLandmarks[23])
+            left_hip = calculateAngle(results.poseLandmarks[12], results.poseLandmarks[24], results.poseLandmarks[26])
+            right_hip = calculateAngle(results.poseLandmarks[11], results.poseLandmarks[23], results.poseLandmarks[25])
+            left_knee = calculateAngle(results.poseLandmarks[24], results.poseLandmarks[26], results.poseLandmarks[28])
+            right_knee = calculateAngle(results.poseLandmarks[23], results.poseLandmarks[25], results.poseLandmarks[27])
+            left_wrist_cordinate = Math.round(results.poseLandmarks[16].x * out5.width)
+            right_wrist_cordinate = Math.round(results.poseLandmarks[15].x * out5.width)
+            //  two_hand_distance = Math.abs(right_wrist_cordinate - left_wrist_cordinate)
+            //console.log([left_hand_elbow, right_hand_elbow, left_shoulder,right_shoulder, left_hip, right_hip, left_knee, right_knee])
+
+
+            let leftEye = results.poseLandmarks[1];
+            let rightEye = results.poseLandmarks[2];
+            let pixelDistance = Math.sqrt(Math.pow(rightEye.x - leftEye.x, 2) + Math.pow(rightEye.y - leftEye.y, 2)) * out5.width; 
+            const refPixelDistance = 100; 
+            const refPhysicalDistance = 0.063;
+            let distanceToCamera = (refPhysicalDistance * refPixelDistance) / pixelDistance; 
+
+            array.push([left_hand_elbow, right_hand_elbow, left_shoulder,
+                right_shoulder, left_hip, right_hip, left_knee, right_knee , Math.round(distanceToCamera * 100)])
+
+            console.log([left_hand_elbow, right_hand_elbow, left_shoulder,
+                right_shoulder, left_hip, right_hip, left_knee, right_knee, Math.round(distanceToCamera * 100)])
+            
+            
+            document.getElementById("training_count_tag_id").innerHTML = "Count => " + String(count)
+            
+            count += 1
+
+            if (count == 350) {
+                document.getElementById("dataset").value = JSON.stringify(array)
+                const stream = video5.srcObject;
+                const tracks = stream.getTracks();
+                tracks.forEach((track) => {
+                    track.stop();
+                });
+                document.getElementById("train").style.display = "none"
+                document.getElementById("dataset_form").submit()
+                playTextAsAudio( "Training process completed successfully." ,0.7, 1)
+
+            }
+            drawLandmarks(
+                canvasCtx5,
+                Object.values(POSE_LANDMARKS_LEFT)
+                    .map(index => results.poseLandmarks[index]),
+                { color: zColor, fillColor: '#FF0000' });
+            drawLandmarks(
+                canvasCtx5,
+                Object.values(POSE_LANDMARKS_RIGHT)
+                    .map(index => results.poseLandmarks[index]),
+                { color: zColor, fillColor: '#00FF00' });
+            drawLandmarks(
+                canvasCtx5,
+                Object.values(POSE_LANDMARKS_NEUTRAL)
+                    .map(index => results.poseLandmarks[index]),
+                { color: zColor, fillColor: '#AAAAAA' });
+
+            canvasCtx5.restore();
+        }
+
+        const pose = new Pose({
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.2/${file}`;
+            }
+        });
+        pose.onResults(onResultsPose);
+        number = 10
+        myInterval  = setInterval(() => {
+            snapshot.innerHTML = `
+                <p>The snapshot will be taken in ${number}</p>
+                `
+            number -= 1
+            if (number == 0) {
+                isSnap = true
+                snapshot.innerHTML = `<canvas id="snap" width="480px" height="480px"></canvas>`
+                clearInterval(myInterval)
+            }
+        }, 1000)
+        const camera = new Camera(video5, {
+            onFrame: async () => {
+                await pose.send({ image: video5 });
+            },
+            width: 480,
+            height: 480
+        });
+        camera.start();
+
+        new ControlPanel(controlsElement5, {
+            selfieMode: true,
+            upperBodyOnly: false,
+            smoothLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5,
+        })
+            .add([
+                new StaticText({ title: 'MediaPipe Pose' }),
+                fpsControl,
+                new Toggle({ title: 'Selfie Mode', field: 'selfieMode' }),
+                new Toggle({ title: 'Upper-body Only', field: 'upperBodyOnly' }),
+                new Toggle({ title: 'Smooth Landmarks', field: 'smoothLandmarks' }),
+                new Slider({
+                    title: 'Min Detection Confidence',
+                    field: 'minDetectionConfidence',
+                    range: [0, 1],
+                    step: 0.01
+                }),
+                new Slider({
+                    title: 'Min Tracking Confidence',
+                    field: 'minTrackingConfidence',
+                    range: [0, 1],
+                    step: 0.01
+                }),
+            ])
+            .on(options => {
+                video5.classList.toggle('selfie', options.selfieMode);
+                pose.setOptions(options);
+            });
+        
+    }
+
+
+
+</script>
+
+{% endblock %}
