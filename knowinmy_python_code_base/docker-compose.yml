@@ -1,0 +1,54 @@
+web:
+  container_name: knowinmy_web
+  restart: always
+  build: .
+  ports:
+    - 54321:8000 #change port
+  expose:
+    - 8000
+  env_file: production.env
+  volumes:
+    - knowinmy_media_data:/usr/src/app/media
+  links:
+    - postgres:postgres
+  command: sh '/usr/src/app/run_web.sh'
+
+postgres:
+  container_name: knowinmy_postgres
+  restart: always
+  image: postgres:latest
+  env_file: production.env
+  ports:
+    - 54322:5432 #change port
+  volumes:
+    - knowinmy_postgres:/var/lib/postgresqql/data/
+
+# flower:
+#   container_name: admissions_flower
+#   restart: always
+#   command: sh '/usr/src/app/run_flower.sh'
+#   build: .
+#   ports:
+#     - 23666:5555 #change port
+#   links:
+#     - redis:redis
+#     - postgres:postgres
+
+# redis:
+#   container_name: admissions_redis
+#   restart: always
+#   image: redis:latest
+#   ports:
+#     - 23765:6379 #change port
+
+# worker:
+#   container_name: admissions_worker
+#   build: .
+#   restart:  always
+#   command: sh '/usr/src/app/run_celery.sh'
+#   env_file: production.env
+#   links:
+#     - redis:redis
+#     - postgres:postgres
+#   volumes:
+#     - admissions_media_data:/usr/src/app/media
