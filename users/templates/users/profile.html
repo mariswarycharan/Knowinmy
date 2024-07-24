@@ -1,0 +1,27 @@
+{% load static %}
+{% block content %}
+        <h2>Personal Information</h2>
+        <p><strong>Username:</strong> {{ user.username }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>First Name:</strong> {{ user.first_name }}</p>
+        <p><strong>Last Name:</strong> {{ user.last_name }}</p>
+        
+        <p><strong>Role:</strong> 
+                {% for group in request.user.groups.all %}
+                {{group.name}} {% if not forloop.last %},{% endif %}
+                {% empty %}
+                  No groups 
+                {% endfor %}
+        </p>
+        
+{% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+   
+
+{% endblock %}

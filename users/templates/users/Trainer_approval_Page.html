@@ -1,41 +1,23 @@
 {% extends 'users/staff_dashboard.html' %}
+
 {% block body %}
 
 
-{% for data in user_requests %}
+<h1>Upload User Data</h1>
+<form method="post" enctype="multipart/form-data"action="{% url 'Trainer-approval' %}">
+    {% csrf_token %}
+    <input type="file" name="excel_file" required>
+    <button type="submit">Upload</button>
+</form>
 
-<div class="col-xl-10 col-md-10 mb-4 " style="margin-left: 8%;">
-    <div class="card shadow">
-        <div class="card-body p-3 pb-0">
-            <div class="row no-gutters align-items-center float-left">
-                <div class="col">
-                    <div style="font-size: large;" class="font-weight-bold text-primary ">
-                        {{ data.user }} 
-                
-                    </div>
-                    <div style="font-size: smaller;" class="font-weight text-gray-800">{{ data.trainer_status }}</div>
-                </div>
-            </div>
-            
-            <form method='post' >
-            {% csrf_token %}
-            <input type='text' name='id' value={{ data.id }} hidden />
-            <input type='text' name='decision' value = 'REJECT' hidden />
-
-           <button  type="submit" class="btn btn-danger m-2 float-right">Reject</button>
-            </form>
-
-            <form method='post' >
-                {% csrf_token %}
-                <input type='text' name='id' value={{ data.id }} hidden />
-                <input type='text' name='decision' value = 'ACCEPT' hidden />
-    
-               <button  type="submit" class="btn btn-primary m-2 float-right">Accept</button>
-                </form>
-        </div>
-    </div>
-</div>
-{% endfor %}
-
+{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
 
 {% endblock %}
+
+

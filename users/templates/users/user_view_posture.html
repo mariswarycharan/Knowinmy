@@ -336,6 +336,44 @@
                     }
 
                     document.getElementById("accurary_tag_id").innerHTML = "Accurary => " + String(accuracy) + " % "
+                  
+                    const url = `get_posture/${posture_id}`;
+                    console.log("hello");
+                     fetch(url, {
+                             method: 'POST',
+                             headers: {
+                                      'Content-Type': 'application/json',
+                                      'X-CSRFToken': getCookie('csrftoken')
+                                    },
+                            body: JSON.stringify({ accuracy: accuracy, posture_id: postureId })
+                                })
+                     .then(response => response.json())
+                      .then(data => {
+                                   console.log('Success:', data);
+                            })
+                    .catch((error) => {
+                             console.error('Error:', error);
+                                  });
+                             }
+
+// Function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
+
 
 
                 }

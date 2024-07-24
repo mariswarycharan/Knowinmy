@@ -2,6 +2,7 @@ from django.urls import path
 from .views import *
 from django.conf.urls.static import static
 from django.conf import settings
+from django.contrib.auth import views as auth_views
 
 
 urlpatterns =[
@@ -11,6 +12,12 @@ urlpatterns =[
     path("register/",register,name="register"),
     path("create_asana/",create_asana,name="create-asana"),
     path("staff_dashboard/",staff_dashboard_function,name="staff_dashboard"),
+    # path("reset_password/",auth_ views,PasswordResetView.as_view()),
+    path("reset_password/", auth_views.PasswordResetView.as_view(), name="password_reset"),
+    path("reset_password_sent/", auth_views.PasswordResetDoneView.as_view(), name="password_reset_done"),
+    path("reset/<uidb64>/<token>/", auth_views.PasswordResetConfirmView.as_view(), name="password_reset_confirm"),
+    path("reset_password_complete/", auth_views.PasswordResetCompleteView.as_view(), name="password_reset_complete"),
+
     
 
     #train - trainer side
@@ -21,19 +28,36 @@ urlpatterns =[
 
     #test - user side
     path("user_view_asana/",user_view_asana,name="user-view-asana"),
-    path("user_view_posture/<int:asana_id>",user_view_posture,name="user-view-posture"),
+    path("user_view_posture/<int:asana_id>/",user_view_posture,name="user-view-posture"),
     path("get_posture/<int:posture_id>",get_posture,name="get-posture"),
 
     #Trainer_approval
     path("trainer_approval/",Trainer_approval_function,name="Trainer-approval"),
     
     # add student 
-    path("student_approval/",Add_Student,name="Student-approval"),
+   
     path("trainer_dashboard/",Trainer_dashboard,name="Trainer-dashboard"),
    
-    
+    #profile
+    path('profile/',profile_view,name='profile-user'),
+
+
     #api
     path("get_posture_dataset/",get_posture_dataset,name="get-posture-dataset"),
+
+    # logging page 
+
+
+    # dashboard page 
+    path('dashboard/',dashboard,name='dashboard'),
+
+    #subscription page 
+    path('subscription_plans/',subscription_plans,name='subscription-plans'),
+
+    #payment page 
+    path('payment/',subscription_payment,name='subscription-payment'),
+    path("razorpay/callback/", callback, name="callback"),
+  
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,0 +1,18 @@
+
+
+
+
+{% block content %}
+<div class="container">
+    <div class="alert alert-danger" role="alert">
+        <h4 class="alert-heading">Payment Failed!</h4>
+        <p>Unfortunately, your payment was not successful. Please try again.</p>
+        <hr>
+        <p class="mb-0">Transaction ID: {{ order.payment_id }}</p>
+        <p class="mb-0">Order ID: {{ order.provider_order_id }}</p>
+        <p class="mb-0">Amount: {{ order.amount }}</p>
+        <p class="mb-0">Status: {{ order.status }}</p>
+    </div>
+    <a href="{% url 'subscription-plans' %}" class="btn btn-primary">Try Again</a>
+</div>
+{% endblock %}

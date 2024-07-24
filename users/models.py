@@ -1,8 +1,11 @@
-from distutils.command.upload import upload
+
 from email.policy import default
 from tabnanny import verbose
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.translation import gettext_lazy as _ 
+
+# from *cons import PaymentStatus
 
 #enable disable
 class Asana(models.Model):
@@ -41,14 +44,68 @@ status_choices = (
         ),
     )
 
-# user data model
-class Trainer_access_model(models.Model):
-    user = models.ForeignKey(User,related_name="related_user_data",on_delete=models.CASCADE)
-    trainer_status = models.CharField(null=True,max_length=30,blank=True,choices = status_choices,default='PENDING')
-  
+# user data model   
+class CourseDetails(models.Model):
+    course_name = models.CharField(verbose_name="Course Name", max_length=100)
+    asanas_created = models.ForeignKey(Asana, related_name="course_asanas", on_delete=models.CASCADE,null=True,blank=True)
+    
+    description = models.TextField(max_length=200)
+    
+    user= models.ForeignKey(User, verbose_name="Trainee Name", on_delete=models.CASCADE, related_name="trainee_name",null=True,blank=True)
+    added_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="courses_added",null=True,blank=True)
+    trainee_status= models.CharField(max_length=10, choices=status_choices, default='PENDING')
+    created_at=models.DateTimeField(verbose_name='Created at',null=True)
+    updated_at= models.DateTimeField(verbose_name='Last modified at',null=True)
 
-class Student_data_model(models.Model):
+
+    
+class EnrollmentDetails(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="enrolled_courses", verbose_name="Student Name", null=True, blank=True)
+    added_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="enrollments_added", null=True, blank=True)
+    trainer = models.ForeignKey(CourseDetails, on_delete=models.SET_NULL, related_name="trainer_enrollments", null=True, blank=True, verbose_name="name")
+    student_status=models.CharField(max_length=10, choices=status_choices, default='PENDING')
+    created_at=models.DateTimeField(verbose_name='Created at',null=True)
+    updated_at= models.DateTimeField(verbose_name='Last modified at',null=True)
+
+
+
+class Activity(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE)
-    trainer = models.ForeignKey(Trainer_access_model,on_delete=models.CASCADE,null=True,default=None)
-    student_status = models.CharField(null=True,max_length=30,blank=True,choices = status_choices,default='PENDING')
+    activity_type = models.CharField(max_length =100)
+    description = models.TextField()
+    timestamp= models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"{self.user.username}-{self.activity_type} at {self.timestamp}"
+
+
+
+class Subscription(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(max_length=100)
+    permitted_asanas = models.PositiveIntegerField(default=None)
+    no_of_persons_onboard =models.PositiveIntegerField(default=None)
+    price=  models.FloatField(default= None)
+    highlight_status = models.BooleanField(default=False)
+    created_at=models.DateTimeField(verbose_name='Created at',null=True)
+    updated_at= models.DateTimeField(verbose_name='Last modified at',null=True)
+
+
+class Order(models.Model):
+    subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE, related_name='orders')
+    name = models.CharField(_("Customer Name"), max_length=254, blank=False, null=False)
+    amount = models.FloatField(_("Amount"), null=False, blank=False)
+    status = models.CharField(_("Payment Status"), max_length=10, choices=status_choices, default='PENDING')
+    provider_order_id = models.CharField(_("Order ID"), max_length=40, null=False, blank=False)
+    payment_id = models.CharField(_("Payment ID"), max_length=36, null=False, blank=False)
+    signature_id = models.CharField(_("Signature ID"), max_length=128, null=False, blank=False)
+    created_at=models.DateTimeField(verbose_name='Created at',null=True)
+    updated_at= models.DateTimeField(verbose_name='Last modified at',null=True)
+
+    def __str__(self):
+        return f"{self.id}-{self.name}-{self.status}"
+    
+
+
+    
+    

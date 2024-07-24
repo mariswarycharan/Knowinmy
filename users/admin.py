@@ -1,5 +1,7 @@
 from django.apps import apps
 from django.contrib import admin
+from import_export.admin import ImportExportModelAdmin
+from .resources import PersonResource
 
 
 class ListAdminMixin(object):
@@ -16,3 +18,12 @@ for model in models:
         admin.site.register(model, admin_class)
     except admin.sites.AlreadyRegistered:
         pass
+
+
+
+
+
+
+
+class PersonAdmin(ImportExportModelAdmin):
+    resource_class = PersonResource

@@ -1,0 +1,21 @@
+{% load static %}
+<button href="#">Coupoun </button>
+<h1>Subscription Plans</h1>
+
+{% for subscription in subscriptions %}
+    <h2><strong>Name:</strong> {{ subscription.name }}</h2>
+    <h4><strong>Description:</strong> {{ subscription.description }}</h4>
+    <h2><strong>Number Asanas need to be trained:</strong> {{ subscription.permitted_asanas }}</h2>
+    <h3><strong>Number persons need to onboard:</strong> {{ subscription.no_of_persons_onboard }}</h3>
+    <h3><strong>Price:</strong> {{ subscription.price }}</h3>
+    
+    <form action="{% url 'subscription-payment' %}" method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="subscription_id" value="{{ subscription.id }}">
+        <div class="mb-3">
+            <label for="name-{{ subscription.id }}" class="form-label">Name</label>
+            <input type="text" name="name" class="form-control" id="name-{{ subscription.id }}">
+        </div>
+        <button type="submit" class="btn btn-primary">Pay Now</button>
+    </form>
+{% endfor %}

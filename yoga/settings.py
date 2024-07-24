@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 from pathlib import Path
 import os
 
+SETTINGS_PATH = os.path.dirname(os.path.dirname(__file__))
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -43,6 +45,9 @@ INSTALLED_APPS = [
 
     'users',
     'crispy_forms',
+    'import_export',
+    'tablib',
+    'openpyxl',
 ]
 
 MIDDLEWARE = [
@@ -68,6 +73,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                
             ],
         },
     },
@@ -142,6 +148,7 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
@@ -163,3 +170,21 @@ LOGIN_REDIRECT_URL= '/'
 CSRF_TRUSTED_ORIGINS = ["https://test1.knowinmy.com", "https://staging.knowinmy.com","http://10.1.76.75" "http://10.1.76.152"]
 #if IS_PRODUCTION:
 #    SECURE_SSL_REDIRECT = True
+
+
+
+
+#SMTP CONFIGURATION 
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = 'smtp.example.com'  # SMTP server host
+EMAIL_PORT = 587  # SMTP server port (587 for TLS, 465 for SSL)
+EMAIL_USE_TLS = True  # True for TLS, False for SSL
+EMAIL_HOST_USER = 'prabha2563@gmail.com'  # SMTP server username
+EMAIL_HOST_PASSWORD = 'dvairrrqlnulsmny'  # SMTP server password
+
+
+
+# RAZORPAY INTEGERATION 
+RAZORPAY_KEY_ID='rzp_test_gH8crtxqRW3cZr'
+RAZORPAY_KEY_SECRET='EMEAVJGJAygp5zbJh5MSjkXY'

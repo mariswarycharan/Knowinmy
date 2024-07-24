@@ -2,7 +2,7 @@
 {% block body %}
 <div class="container mt-5">
     <div class="container">
-        <a href="{% url 'create-asana' %}"><button type="button" class="btn btn-primary mb-5">Create</button></a>
+        <a href="{% url 'create-asana' %}"id="create-asana-link"><button type="button"id='create-asana-button' class="btn btn-primary mb-5">Create</button></a>
     </div>
     <div class="row">
         <p class="col-12">Your Asanas</p>
@@ -40,6 +40,20 @@
     
 
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded',function(){
+        console.log("dom content is fully loaded ");
+        const create_asana_button = document.getElementById('create-asana-button')
+        const create_asana_link=document.getElementById('create-asana-link')
+        create_asana_link.addEventListener('click',function(){
+            create_asana_button.disabled=true
+            event.preventDefault();
+          
+        })
+
+
+    })
+</script>
 
 
 
