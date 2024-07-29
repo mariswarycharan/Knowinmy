@@ -14,3 +14,7 @@ class EditPostureForm(ModelForm):
         model = Posture
         fields = ['name','snap_shot']
         
+# class CouponCodeForm(ModelForm):
+#     class Meta:
+#         model=
+#         fields=[]

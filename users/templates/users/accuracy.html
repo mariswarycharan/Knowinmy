@@ -1,0 +1,9 @@
+{% for asana in user.asanas.all %}
+    <div id="asana-{{ asana.id }}">
+        <h3>{{ asana.name }}</h3>
+        <p>Overall Accuracy: <span class="overall-accuracy">{{ calculate_asana_overall_accuracy }}</span></p>
+    </div>
+{% endfor %}
+<div>
+    <h3>Overall User Accuracy: <span id="user-overall-accuracy">{{ calculate_user_overall_accuracy }}</span></h3>
+</div>

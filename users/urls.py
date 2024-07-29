@@ -51,6 +51,10 @@ urlpatterns =[
     # dashboard page 
     path('dashboard/',dashboard,name='dashboard'),
 
+    #accuracy page 
+    path('record_accuracy/', record_accuracy, name='record-accuracy'),
+    path('finalize_accuracy',finalize_accuracy,name='finalize-accuracy'),
+
     #subscription page 
     path('subscription_plans/',subscription_plans,name='subscription-plans'),
 

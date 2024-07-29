@@ -1,21 +1,51 @@
 {% load static %}
-<button href="#">Coupoun </button>
-<h1>Subscription Plans</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription Plans</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Subscription Plans</h1>
 
-{% for subscription in subscriptions %}
-    <h2><strong>Name:</strong> {{ subscription.name }}</h2>
-    <h4><strong>Description:</strong> {{ subscription.description }}</h4>
-    <h2><strong>Number Asanas need to be trained:</strong> {{ subscription.permitted_asanas }}</h2>
-    <h3><strong>Number persons need to onboard:</strong> {{ subscription.no_of_persons_onboard }}</h3>
-    <h3><strong>Price:</strong> {{ subscription.price }}</h3>
-    
-    <form action="{% url 'subscription-payment' %}" method="POST">
-        {% csrf_token %}
-        <input type="hidden" name="subscription_id" value="{{ subscription.id }}">
-        <div class="mb-3">
-            <label for="name-{{ subscription.id }}" class="form-label">Name</label>
-            <input type="text" name="name" class="form-control" id="name-{{ subscription.id }}">
+        <div class="row">
+            {% for subscription in subscriptions %}
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h2 class="card-title"><strong>Name:</strong> {{ subscription.name }}</h2>
+                        <h4 class="card-text"><strong>Description:</strong> {{ subscription.description }}</h4>
+                        <h5 class="card-text"><strong>Number Asanas need to be trained:</strong> {{ subscription.permitted_asanas }}</h5>
+                        <h5 class="card-text"><strong>Number persons need to onboard:</strong> {{ subscription.no_of_persons_onboard }}</h5>
+                        <h3 class="card-text"><strong>Price:</strong> {{ subscription.price }}</h3>
+
+                        <form action="{% url 'subscription-payment' %}" method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="subscription_id" value="{{ subscription.id }}">
+                            <div class="form-group">
+                                <label for="name-{{ subscription.id }}">Name</label>
+                                <input type="text" name="name" class="form-control" id="name-{{ subscription.id }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="coupon-{{ subscription.id }}">Coupon Code (optional)</label>
+                                <input type="text" name="coupon_code" class="form-control" id="coupon-{{ subscription.id }}" placeholder="Enter coupon code if any">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Pay Now</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
         </div>
-        <button type="submit" class="btn btn-primary">Pay Now</button>
-    </form>
-{% endfor %}
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
+

@@ -9,7 +9,7 @@
       
             {{ form|crispy }}
         {% endfor %}
-        <button type="submit" class="btn btn-primary">Submit</button>
+        <button type="submit" class="btn btn-primary" id="submit-button">Submit</button>
     </form>
 </div>
 {% if messages %}
@@ -19,4 +19,6 @@
         {% endfor %}
     </ul>
 {% endif %}
+
+
 {% endblock %}

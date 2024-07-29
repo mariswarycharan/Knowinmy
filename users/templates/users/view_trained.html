@@ -41,15 +41,27 @@
 
 </div>
 <script>
-    document.addEventListener('DOMContentLoaded',function(){
+    document.addEventListener('click',function(){
         console.log("dom content is fully loaded ");
-        const create_asana_button = document.getElementById('create-asana-button')
-        const create_asana_link=document.getElementById('create-asana-link')
-        create_asana_link.addEventListener('click',function(){
+        const create_asana_button = document.getElementById('')
+        
+        create_asana_button.addEventListener('click',function(){
             create_asana_button.disabled=true
-            event.preventDefault();
+           
+
+            
+        }, { once: true });
+        //firstly take up the value of the no_of_permitted_asans
+        //next inside for loop iterate it
+        //next disable the button
+     
+            
+
+            
+   
+   
           
-        })
+       
 
 
     })

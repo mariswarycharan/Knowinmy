@@ -1,13 +1,15 @@
 
 from email.policy import default
+import secrets
 from tabnanny import verbose
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _ 
+from django.db.models.signals import post_save
 
 # from *cons import PaymentStatus
 
-#enable disable
+#enable disable 
 class Asana(models.Model):
     name = models.CharField(max_length=100,verbose_name="Asana Name")
     no_of_postures = models.PositiveIntegerField(verbose_name="Number of Postures")
@@ -47,25 +49,24 @@ status_choices = (
 # user data model   
 class CourseDetails(models.Model):
     course_name = models.CharField(verbose_name="Course Name", max_length=100)
-    asanas_created = models.ForeignKey(Asana, related_name="course_asanas", on_delete=models.CASCADE,null=True,blank=True)
-    
     description = models.TextField(max_length=200)
-    
     user= models.ForeignKey(User, verbose_name="Trainee Name", on_delete=models.CASCADE, related_name="trainee_name",null=True,blank=True)
-    added_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="courses_added",null=True,blank=True)
+    # added_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="courses_added",null=True,blank=True)
+    asanas_by_trainer=models.ForeignKey(Asana,on_delete=models.CASCADE,related_name="asanas_created_by_trainee",null=True,blank=True)
     trainee_status= models.CharField(max_length=10, choices=status_choices, default='PENDING')
+    no_of_asanas_created=models.PositiveIntegerField(null=True,blank=True,default=0)
     created_at=models.DateTimeField(verbose_name='Created at',null=True)
     updated_at= models.DateTimeField(verbose_name='Last modified at',null=True)
-
-
+    # adding_student_to_course=models.ManyToManyField(User)
     
 class EnrollmentDetails(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="enrolled_courses", verbose_name="Student Name", null=True, blank=True)
     added_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="enrollments_added", null=True, blank=True)
-    trainer = models.ForeignKey(CourseDetails, on_delete=models.SET_NULL, related_name="trainer_enrollments", null=True, blank=True, verbose_name="name")
+    # trainer = models.ForeignKey(CourseDetails, on_delete=models.SET_NULL, related_name="trainer_enrollments", null=True, blank=True, verbose_name="name")
     student_status=models.CharField(max_length=10, choices=status_choices, default='PENDING')
     created_at=models.DateTimeField(verbose_name='Created at',null=True)
     updated_at= models.DateTimeField(verbose_name='Last modified at',null=True)
+    students_added_to_courses=models.ManyToManyField(CourseDetails,related_name="course_asanas", blank=True)
 
 
 
@@ -85,7 +86,7 @@ class Subscription(models.Model):
     description = models.TextField(max_length=100)
     permitted_asanas = models.PositiveIntegerField(default=None)
     no_of_persons_onboard =models.PositiveIntegerField(default=None)
-    price=  models.FloatField(default= None)
+    price =  models.FloatField(default= None)
     highlight_status = models.BooleanField(default=False)
     created_at=models.DateTimeField(verbose_name='Created at',null=True)
     updated_at= models.DateTimeField(verbose_name='Last modified at',null=True)
@@ -107,5 +108,49 @@ class Order(models.Model):
     
 
 
-    
-    
+
+# class NumberOfAsana(models.Model):
+#     asanas_created_by_user=models.ForeignKey(User,on_delete=models.CASCADE)
+#     no_of_asanas_created=models.PositiveIntegerField(null=True,blank=True,default=0)
+
+
+
+class PostureAccuracy(models.Model):
+    asana_for_accuracy = models.ForeignKey(Asana, related_name='postures', on_delete=models.CASCADE)
+    user_to_calculate = models.ForeignKey(User, related_name='posture_accuracies', on_delete=models.CASCADE)
+
+    accuracy = models.FloatField(null=True,blank=True)
+    recorded_at = models.DateTimeField(auto_now_add=True)
+
+
+class CouponCodeForNegeotiation(models.Model):
+    user=models.ForeignKey(User,on_delete=models.CASCADE,related_name='coupon_code_for_client')
+    subscription_for_coupon_code=models.ForeignKey(Subscription,on_delete=models.CASCADE)
+    discount_percentage=models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, default=0)
+    code=models.CharField(max_length=8, blank=True, null=True, unique=True)
+
+
+
+
+    @classmethod
+    def post_create(cls, sender, instance, created, *args, **kwargs):
+        """
+        Connected to the post_save signal of the UniqueCodes model. This is used to set the
+        code once we have created the db instance and have access to the primary key (ID Field)
+        """
+        # If new database record
+        if created:
+            # We have the primary key (ID Field) now so let's grab it
+            id_string = str(instance.id)
+            # Define our random string alphabet (notice I've omitted I,O,etc. as they can be confused for other characters)
+            upper_alpha = "ABCDEFGHJKLMNPQRSTVWXYZ"
+            # Create an 8 char random string from our alphabet
+            random_str = "".join(secrets.choice(upper_alpha) for i in range(8))
+            # Append the ID to the end of the random string
+            instance.code = (random_str + id_string)[-8:]
+            # Save the class instance
+            instance.save()
+
+    def __str__(self):
+        return "%s" % (self.code,)
+post_save.connect(CouponCodeForNegeotiation.post_create, sender=CouponCodeForNegeotiation)

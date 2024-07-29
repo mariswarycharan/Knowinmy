@@ -30,6 +30,7 @@
                         </div>
                         <div class="col-auto">
                             <a href="#" onclick="loadTest({{posture.id}})">
+                                
                                 <div class="col-auto">
                                     <i class="fas fa-arrow-right fa-2x text-gray-300"></i>
                                 </div>
@@ -47,7 +48,7 @@
         
 
 
-        {% endfor%}
+        
     </div>
     <video class="input_video5" style="display:none;"></video>
 
@@ -96,14 +97,24 @@
 
 
 
+
 <script>
     var array
     var snap_shot;
     let processFurther = true;
     var count_text_to_audio_stand_instruction = true;
     let avg
+    
+    
+    
 
-    async function loadTest(posture_id) {
+
+
+
+     async function loadTest(posture_id) {
+        console.log(posture_id);
+        // const posture_id=posture_id
+        console.log(posture_id,"line109");
         response = await fetch(`/get_posture_dataset?posture_id=${posture_id}`)
         response = await response.json()
         array = await response["dataset"]
@@ -113,6 +124,8 @@
         snap_shot = await response["snapshot"]
         await distance()
     }
+
+
 
     function findMode(arr) {
         const frequencyMap = {};
@@ -188,8 +201,8 @@
           console.error('Speech synthesis not supported in this browser.');
         }
       }
-      
-    
+
+
       
 
 
@@ -335,49 +348,19 @@
                         accuracy = Math.round(accuracy * 100) / 100; // Round to 2 decimal places
                     }
 
+
                     document.getElementById("accurary_tag_id").innerHTML = "Accurary => " + String(accuracy) + " % "
-                  
-                    const url = `get_posture/${posture_id}`;
-                    console.log("hello");
-                     fetch(url, {
-                             method: 'POST',
-                             headers: {
-                                      'Content-Type': 'application/json',
-                                      'X-CSRFToken': getCookie('csrftoken')
-                                    },
-                            body: JSON.stringify({ accuracy: accuracy, posture_id: postureId })
-                                })
-                     .then(response => response.json())
-                      .then(data => {
-                                   console.log('Success:', data);
-                            })
-                    .catch((error) => {
-                             console.error('Error:', error);
-                                  });
-                             }
-
-// Function to get CSRF token
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-
-
-
+                    const c = document.getElementById("accurary_tag_id").innerHTML = "Accurary => " + String(accuracy).value
 
                 }
                 canvasCtx5.fillText(score, out5.width - 50,25);
+    
+    
+                const c = document.getElementById("accurary_tag_id").innerHTML = "Accurary => " + String(accuracy)
+
+    
+    
+
                     
 
                 // drawing red color circle for wroung keep pose
@@ -405,34 +388,53 @@ function getCookie(name) {
                         [red[i][1]],POSE_LANDMARKS,
                         { color: zColor, fillColor: '#FF0000' });
                 }
-                
-            }
+             }
             
-            else{
+              else{
                 canvasCtx5.fillText("Get Reddy !!", out5.width - 200,25);
-            }
+               }
 
-            document.getElementById("testing_count_tag_id").innerHTML = "Count => " + String(score)
+                document.getElementById("testing_count_tag_id").innerHTML = "Count => " + String(score)
 
 
-            if (score == 50) {
+             if (score == 50) {
                 const stream = video5.srcObject;
                 const tracks = stream.getTracks();
                 tracks.forEach((track) => {
                     track.stop();
+
                 });
                 document.getElementById("train").style.display = "none"
 
                 playTextAsAudio( "You have completed the yoga exercise successfully." ,0.4, 1)
+                // need to implement a indication in the form of function the pocess gets completed 
+                processCompletion()
+
+
 
                 // Reload the current page
                 window.location.reload();
+               
 
 
             }
+            // const isCompleteProcess=await processCompletion()
+            //     console.log("end of yhe process");
+            //     if (isCompleteProcess){
+            //         console.log("process is completed ");
+            //         await finalizeAccuracy(postureId)
+            //     }else{
+            //         console.log("process is not completed");
+            //     }
+
+       
             
             
             document.getElementsByClassName("m-0 font-weight-bold text-primary").innerHTML =  score.toString()
+            extractAccuracy();
+
+            
+
             
             
             /*drawLandmarks(
@@ -457,6 +459,7 @@ function getCookie(name) {
             
             canvasCtx5.restore();
         }
+    
 
         const pose = new Pose({
             locateFile: (file) => {
@@ -520,12 +523,148 @@ function getCookie(name) {
         //         count -= 1
         //     },1000)            
         // },10000)
+
+
+
+
+    }
+    
+    
+    //end of tester function
+    async function processCompletion(){
+                    return new Promise((resolve)=>{
+                        setTimeout(()=>{
+                            console.log("process is completed");
+                            resolve(true)
+                        },0)
+                    })
+
+                }
+    //accuracy extraction and calculation
+const accuracyValues = []
+
+const posture_id = {{ posture.id }};
+
+function extractAccuracy() {
+    const c = document.getElementById("accurary_tag_id").innerHTML = "Accurary => " + String(accuracy)
+    console.log("Inner HTML:", c);
+
+    if (c && c.includes("=>")) {
+        const a = c.split("=>")[1]?.split("%")[0]?.trim();
+        console.log("Extracted accuracy string:", a);
+        const accuracy = parseFloat(a);
+        console.log("Parsed accuracy:", accuracy);
+        console.log(typeof(accuracy),"kdjsfj");
+
+        if (!isNaN(accuracy)) {
+            accuracyValues.push(accuracy);
+            
+            console.log("Accuracy value pushed:", accuracy);
+
+        } else {
+            console.error("Accuracy value is not a number:", accuracy);
+        }
+    } else {
+        console.error("Failed to find '=>' in string:", c);
     }
 
+
+
+console.log("Current accuracy values array:", accuracyValues);
+sendAverageAccuracy(posture_id)
+}
+
+
+extractAccuracy()
+console.log("hello");
+
+async function sendAverageAccuracy(posture_id) {
+
+    console.log("entered send average avcuracy ");
+    console.log(accuracyValues);
+    console.log("anything wrong");
+    if (accuracyValues.length > 0) {
+        console.log("entered to main calculation");
+        const averageAccuracy = accuracyValues.reduce((sum, value) => sum + value, 0) / accuracyValues.length;
+        console.log(averageAccuracy);
+        const response = await fetch(`http://localhost:8000/user_view_posture/${posrure_id}`, {
+            
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                posture_id: posture_id,
+                accuracy_for_posture: averageAccuracy,
+                
+            })
+            
+        });
+        console.log("post the accuracy immediately");
+
+        const result = await response.json();
+        console.log("Accuracy recorded:", result);
+
+        
+    } else {
+        console.error('No accuracy values to process');
+        
+    }
+}
+
+async function finalizeAccuracy(postureId){
+    console.log("entered the finalize accuracy function");
+    try{
+        const res= await fetch('http://localhost:8000/finalize_accuracy/',{
+            method:'POST',
+            headers:{
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken') 
+            },
+            body:JSON.stringify({
+                posture_id:postureId,
+                process_completion:isCompleteProcess
+
+            })
+        })
+        const result=await res.json()
+        console.log("Response from server:", result);
+        if (result.status === 'success') {
+            console.log('User Overall Accuracy:', result.accuracy_for_posture);
+            document.querySelector(`#asana-${asanaId} .overall-accuracy`).innerText = result.asana_overall_accuracy;
+            document.querySelector('#user-overall-accuracy').innerText = result.user_overall_accuracy;
+        } else {
+            console.error('Failed to record accuracy:', result.message);
+           
+        }
+
+    }catch{
+        console.log("erroe");
+    }
+}
+
+
+
+function getCookie(name) {
     
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        let cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            let cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+    }
+                   
 
     // Distance 
-    function distance() {
+     function distance() {
         const controls = window;
         const drawingUtils = window;
         const mpFaceMesh = window;
@@ -668,4 +807,5 @@ function getCookie(name) {
     }
 
 </script>
+{% endfor%}
 {% endblock %}

@@ -14,14 +14,36 @@
     <h3>Number of asanas created: {{ created_asana }}</h3>
     <h3>Number of postures created: {{ created_posture }}</h3>
     <h3>Number of edited postures: {{ edited_posture }}</h3>
-    <h3>Accuracy:{{accuracy_for_postures}}</h3>
+   
+    <div>
+        <h2>Overall User Accuracy: <span id="user-overall-accuracy">{{ user_overall_accuracy }}</span></h2>
+    </div>
+    <div>
+        {% for asana_accuracy in asana_accuracies %}
+            <div id="asana-{{ asana_accuracy.asana.id }}">
+                <h3>{{ asana_accuracy.asana.name }}</h3>
+                <p>Overall Accuracy: <span class="overall-accuracy">{{ asana_accuracy.overall_accuracy }}</span></p>
+            </div>
+        {% endfor %}
+    </div>
 
    
 {% elif 'Student' in user_groups %}
     <h1>Welcome {{ request.user.username }}</h1>
     <h3>Number of asanas viewed: {{ viewed_asana }}</h3>
     <h3>Number of postures viewed: {{ viewed_posture }}</h3>
-    <h3>Accuracy:{{accuracy_for_postures}}</h3>
+   
+    <div>
+        <h2>Overall User Accuracy: <span id="user-overall-accuracy">{{ user_overall_accuracy }}</span></h2>
+    </div>
+    <div>
+        {% for asana_accuracy in asana_accuracies %}
+            <div id="asana-{{ asana_accuracy.asana.id }}">
+                <h3>{{ asana_accuracy.asana.name }}</h3>
+                <p>Overall Accuracy: <span class="overall-accuracy">{{ asana_accuracy.overall_accuracy }}</span></p>
+            </div>
+        {% endfor %}
+    </div>
 
    
 {% endif %}
