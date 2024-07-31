@@ -52,7 +52,7 @@ class CourseDetails(models.Model):
     description = models.TextField(max_length=200)
     user= models.ForeignKey(User, verbose_name="Trainee Name", on_delete=models.CASCADE, related_name="trainee_name",null=True,blank=True)
     # added_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="courses_added",null=True,blank=True)
-    asanas_by_trainer=models.ForeignKey(Asana,on_delete=models.CASCADE,related_name="asanas_created_by_trainee",null=True,blank=True)
+    # asanas_by_trainer=models.ForeignKey(Asana,on_delete=models.CASCADE,related_name="asanas_created_by_trainee",null=True,blank=True)
     trainee_status= models.CharField(max_length=10, choices=status_choices, default='PENDING')
     no_of_asanas_created=models.PositiveIntegerField(null=True,blank=True,default=0)
     created_at=models.DateTimeField(verbose_name='Created at',null=True)

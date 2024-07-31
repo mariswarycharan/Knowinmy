@@ -41,6 +41,10 @@ urlpatterns =[
     #profile
     path('profile/',profile_view,name='profile-user'),
 
+    # student mapping
+    path('student_mapping/',student_mapped_to_courses,name='student-mapp-courses'),
+   
+
 
     #api
     path("get_posture_dataset/",get_posture_dataset,name="get-posture-dataset"),

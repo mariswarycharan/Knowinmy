@@ -216,7 +216,59 @@ def Trainer_approval_function(request):
         return render(request, 'users/staff_dashboard.html')
 
                 
+@login_required
+@user_passes_test(check_client)
+def student_mapped_to_courses(request):
+    print("hello")
+    max_forms = 0
+    current_user=request.user
+    transaction = Order.objects.filter(name=current_user, status='ACCEPT').first()
+    if transaction:
+                subscription = transaction.subscription
+                max_forms = subscription.permitted_asanas
+    else:
+                print("No valid transaction found for the client.") 
+    students_added_by_client=EnrollmentDetails.objects.filter(added_by=current_user)
+    StudentCourseMappingFormSet = formset_factory(StudentCourseMappingForm, extra=max_forms, max_num=max_forms, validate_max=True, absolute_max=max_forms)
+    # remaining_forms = max_forms - 
+    
+    if request.method == 'POST':
+        form = StudentCourseMappingForm(request.POST)
+    
+        if form.is_valid():
+            student_user = form.cleaned_data['user']
+            print(student_user)
+            courses_to_be_mapped = form.cleaned_data['students_added_to_courses']
+            try:
+                print("entered line 232")
+            
+                enrollment= EnrollmentDetails.objects.get(user=student_user)
+                print(enrollment)
+            except:
+                enrollment = EnrollmentDetails(user=student_user)
+                enrollment.save()
+            print("successfully saved ")
+            enrollment.students_added_to_courses.set(courses_to_be_mapped)
 
+           
+            
+            # Save the EnrollmentDetails object
+            enrollment.save()
+
+          
+            # messages.success(request, "Courses mapped to student successfully")
+            return render(request,'users/trainer_dashboard.html')  
+
+            
+            
+           
+            
+            
+    else:
+        form = StudentCourseMappingForm()
+    
+    return render(request, 'users/student_mapping.html',{'form':form})
+    
               
                 
                 
@@ -301,7 +353,7 @@ def create_asana(request):
         if client_for_trainer:
             print("entered")
             client = client_for_trainer.added_by
-            created_asanas_by_trainer, created = NumberOfAsana.objects.get_or_create(asanas_created_by_user=trainee_name, defaults={'no_of_asanas_created': 0})
+            created_asanas_by_trainer, created = CourseDetails.objects.get_or_create(asanas_created_by_user=trainee_name, defaults={'no_of_asanas_created': 0})
             print(created_asanas_by_trainer, "created asanas by trainer")
             no_of_asanas_created_by_trainee = created_asanas_by_trainer.no_of_asanas_created
             print(no_of_asanas_created_by_trainee, "no of asanas created by trainee")
@@ -381,14 +433,18 @@ def create_asana(request):
 
 
 
-@csrf_exempt
+
 def record_accuracy(request):
-    if request.method == 'POST':
+    if request.method == 'GET':
         print("entered record_accuracy function")
         try:
+            print("started to load the data")
             data = json.loads(request.body)
+            print(data)
             posture_id = data.get('posture_id')
+            print(posture_id)
             accuracy = data.get('accuracy_for_posture')
+            print(accuracy)
             try:
                 accuracy_values = []
                 posture_id_get_asana=Posture.objects.filter(id=posture_id)
@@ -538,6 +594,16 @@ def edit_posture(request,posture_id):
         
     })
 
+@login_required
+def Add_Student(request):
+    # here i need to map the student with particular course 
+    # he can see only that asana 
+
+
+
+    return render(request,"add_student.html")
+   
+
 
 @login_required
 @user_passes_test(check_student)
@@ -545,29 +611,41 @@ def user_view_asana(request):
     asanas = Asana.objects.all()
     current_user = request.user
     print(current_user, "firstly get instance user")
+    try:
+                enrollment= EnrollmentDetails.objects.get(user=current_user)
+                print("it does not  returned 2 obj")
+    except:
+                enrollment = EnrollmentDetails(user=current_user)
+                enrollment.save()
+                
+   
     
-    current_user_enrollments = EnrollmentDetails.objects.filter(user=current_user)
-    print(current_user_enrollments, "check in db")
+    
+    courses=enrollment.students_added_to_courses.all()
+    print(courses)
+    trainer_asanas = []
+    print("hello world ")
+    
+    # Loop through each course to find the associated trainer and their asanas
+    for course in courses:
+        print("for loop for find the trainer")
+        # Assuming that `trainer` is a ForeignKey in CourseDetails to the User model
+        trainer = course.user
+        print(trainer)
+         # Modify based on your actual model relationship
+        
+        if trainer:
+            # Fetch asanas associated with the trainer
+            asanas = Asana.objects.filter(created_by=trainer)
+            print(asanas)
+            trainer_asanas.extend(asanas)
+            print(trainer_asanas)
+    return render(request, "users/user_view_asana.html", {
+        
+            "trainer_asanas": trainer_asanas,
+            
+        })
 
-    trained_asanas = []
-    for enrollment in current_user_enrollments:
-        trainer_for_user = enrollment.trainer
-        print(trainer_for_user)
-        if trainer_for_user:
-            for asana in asanas:
-                if trainer_for_user.user == asana.created_by:
-                    trained_asanas.append(asana)
-    
-    if trained_asanas:
-        return render(request, "users/user_view_asana.html", {
-            "asanas": trained_asanas,
-            "is_trainer": True,
-        })
-    else:
-        return render(request, "users/user_view_asana.html", {
-            "asanas": asanas,
-            "is_trainer": True,
-        })
 
 @login_required
 @user_passes_test(check_student)
@@ -663,8 +741,7 @@ def dashboard(request):
         context.update({
             'created_asana': Asana.objects.filter(created_by=user).count(),
             'edited_posture': Activity.objects.filter(activity_type='Edited asana',user=user).count(),
-            'asana_accuracies': asana_accuracies,
-            'user_overall_accuracy': user_overall_accuracy
+            
            
         })
         
@@ -674,8 +751,7 @@ def dashboard(request):
         context.update({
             'viewed_asana': Activity.objects.filter(activity_type='view_trained',user=user).count(),
             'viewed_posture': Activity.objects.filter(activity_type='view_posture',user=user).count(),
-            'asana_accuracies': asana_accuracies,
-            'user_overall_accuracy': user_overall_accuracy
+      
            
         })
        

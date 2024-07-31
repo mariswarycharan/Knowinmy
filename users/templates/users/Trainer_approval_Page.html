@@ -10,6 +10,12 @@
     <button type="submit">Upload</button>
 </form>
 
+<br>
+
+<a href="{% url 'student-mapp-courses' %}" class="button">Courses for Student</a>
+
+
+
 {% if messages %}
     <ul class="messages">
         {% for message in messages %}
