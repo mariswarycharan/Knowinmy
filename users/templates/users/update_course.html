@@ -1,0 +1,11 @@
+
+{% block content %}
+<div id="form-container">
+    <form id="course-update-form" method="post" action="{% url 'create-course' %}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="hidden" name="course_id" value="{{ course_id }}">
+        <button type="submit" name="update_course">Update Asana</button>
+    </form>
+</div>
+{% endblock %}

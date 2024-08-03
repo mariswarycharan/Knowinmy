@@ -18,6 +18,9 @@ class Asana(models.Model):
     last_modified_at = models.DateTimeField(verbose_name="Last Modified At")
     is_active = models.BooleanField(default=True)
 
+    def __str__(self):
+        return self.name
+
 
 
 #to add : created_by, created_at, is_active last modified, last_modified by, question bank
@@ -48,16 +51,29 @@ status_choices = (
 
 # user data model   
 class CourseDetails(models.Model):
-    course_name = models.CharField(verbose_name="Course Name", max_length=100)
+    course_name = models.CharField(verbose_name="Course Name", max_length=100,null=True,blank=True)
     description = models.TextField(max_length=200)
     user= models.ForeignKey(User, verbose_name="Trainee Name", on_delete=models.CASCADE, related_name="trainee_name",null=True,blank=True)
     # added_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="courses_added",null=True,blank=True)
-    # asanas_by_trainer=models.ForeignKey(Asana,on_delete=models.CASCADE,related_name="asanas_created_by_trainee",null=True,blank=True)
-    trainee_status= models.CharField(max_length=10, choices=status_choices, default='PENDING')
-    no_of_asanas_created=models.PositiveIntegerField(null=True,blank=True,default=0)
+    asanas_by_trainer=models.ManyToManyField(Asana,related_name="asanas_created_by_trainee")
+    # trainee_status= models.CharField(max_length=10, choices=status_choices, default='PENDING')
+    # no_of_asanas_created=models.PositiveIntegerField(null=True,blank=True,default=0)
+    # no_of_students_enrolled_in_course=models.ManyToManyField(EnrollmentDetails)
     created_at=models.DateTimeField(verbose_name='Created at',null=True)
     updated_at= models.DateTimeField(verbose_name='Last modified at',null=True)
     # adding_student_to_course=models.ManyToManyField(User)
+
+
+
+
+    def __str__(self):
+        return self.course_name
+
+
+
+
+
+    
     
 class EnrollmentDetails(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="enrolled_courses", verbose_name="Student Name", null=True, blank=True)
@@ -67,6 +83,9 @@ class EnrollmentDetails(models.Model):
     created_at=models.DateTimeField(verbose_name='Created at',null=True)
     updated_at= models.DateTimeField(verbose_name='Last modified at',null=True)
     students_added_to_courses=models.ManyToManyField(CourseDetails,related_name="course_asanas", blank=True)
+
+
+
 
 
 
@@ -109,9 +128,7 @@ class Order(models.Model):
 
 
 
-# class NumberOfAsana(models.Model):
-#     asanas_created_by_user=models.ForeignKey(User,on_delete=models.CASCADE)
-#     no_of_asanas_created=models.PositiveIntegerField(null=True,blank=True,default=0)
+
 
 
 
@@ -128,6 +145,8 @@ class CouponCodeForNegeotiation(models.Model):
     subscription_for_coupon_code=models.ForeignKey(Subscription,on_delete=models.CASCADE)
     discount_percentage=models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, default=0)
     code=models.CharField(max_length=8, blank=True, null=True, unique=True)
+    created_at=models.DateTimeField(verbose_name='Created at',null=True)
+    updated_at= models.DateTimeField(verbose_name='Last modified at',null=True)
 
 
 
@@ -154,3 +173,21 @@ class CouponCodeForNegeotiation(models.Model):
     def __str__(self):
         return "%s" % (self.code,)
 post_save.connect(CouponCodeForNegeotiation.post_create, sender=CouponCodeForNegeotiation)
+
+
+
+
+# trainee log model 
+# trainer_name=user-foreignkey
+# added_by--user-foreign key-client/_name
+# no_of_asans_created-- number 
+# created_at/updated_at
+
+
+class TrainerLogDetail(models.Model):
+    trainer_name=models.ForeignKey(User,on_delete=models.CASCADE,null=True,blank=True,related_name='trainees')
+    onboarded_by=models.ForeignKey(User,on_delete=models.CASCADE,null=True,blank=True,related_name='onboard_traines_by')
+    no_of_asanas_created=models.PositiveIntegerField(null=True,blank=True,default=0)
+    created_at=models.DateTimeField(verbose_name='Created at',null=True)
+    updated_at= models.DateTimeField(verbose_name='Last modified at',null=True)
+   

@@ -1,5 +1,11 @@
 from decimal import Decimal
 import json
+
+
+from django.views import View
+# from bulkmodel.models import BulkModel
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Avg
 from django.views.decorators.csrf import csrf_exempt
 from django.forms import formset_factory
@@ -146,94 +152,106 @@ def callback(request):
         print("FAILURE: Error in payment process.")
         return render(request, "users/callback.html", context={"status": order.status})
 
+
+
+
 @login_required
 @user_passes_test(check_client)
 def Trainer_approval_function(request):
     try:
-        if request.method == 'POST':  
-            user= request.user
-            transaction = Order.objects.filter(name=user, status='ACCEPT').first() 
-            if transaction:
-                subscription = transaction.subscription
-                no_of_persons_onboard_by_client =subscription.no_of_persons_onboard
-                print(no_of_persons_onboard_by_client,"line 157")
-            else:
+        if request.method == 'POST':
+            admin_user = request.user
+            order_transaction = Order.objects.filter(name=admin_user, status='ACCEPT').first()
+            
+            if not order_transaction:
                 print("No transaction found")
-            
-            # Fetch the uploaded file
+                return render(request, 'users/Trainer_approval_Page.html')
+
+            subscription = order_transaction.subscription
+            no_of_persons_onboard_by_client = subscription.no_of_persons_onboard
+
             new_persons = request.FILES.get('excel_file')
+            df = pd.read_excel(new_persons, nrows=no_of_persons_onboard_by_client, engine='openpyxl')
 
-            
-            df = pd.read_excel(new_persons,nrows=no_of_persons_onboard_by_client, engine='openpyxl')
-            print(df)
+            success_count = 0
+            error_count = 0
+            user_objs = []
+            role_dict = {}
 
-            success_count=0
-            error_count=0
-            
-            for i,row in df.iterrows():
-                user,created=User.objects.get_or_create(
-                    username=row['username'],
-                    defaults={
-                          'email':row['email'],
-                          'first_name':row['first_name'],
-                          'last_name':row['last_name'],
-                          'password':row['password']
-
-                    }
-                   
-                   
-                )
-                if created:
-                    print("created sucessfully",user.username)
-                
-                    role = row['roles'].lower()
+            with transaction.atomic():
+                for i, row in df.iterrows():
+                    username = row['username']
+                    email = row['email']
+                    first_name = row['first_name']
+                    last_name = row['last_name']
                     password = row['password']
-                    print(password)
-                   
-                    if role:
-                          group, created = Group.objects.get_or_create(name=role.capitalize())
-                          user.groups.add(group)
-                          print(f"Added {user.username} to group {group.name}")
+                    role = row['roles'].lower()
+
+                    user = User(
+                        username=username,
+                        email=email,
+                        first_name=first_name,
+                        last_name=last_name,
+                    )
                     user.set_password(password)
-                    user.save()    
-                    success_count+=1
-                    
-                else:
-                    print("user not createsd")
-                error_count=+0
-            messages.success(request, ' users uploaded successfully.')
-            if error_count > 0:
-                messages.error(request, 'rows could not be processed.')
-                
-               
-                return render(request, 'users/home.html')
-        return render(request,'users/Trainer_approval_Page.html')
+                    user_objs.append(user)
+                    role_dict[username] = role
 
-                     
+                User.objects.bulk_create(user_objs)
+
+                for user in user_objs:
+                    role = role_dict[user.username]
+                    group, created = Group.objects.get_or_create(name=role.capitalize())
+                    user.groups.add(group)
+                    print(f"Added {user.username} to group {group.name}")
+
+                    if role == 'trainer':
+                        TrainerLogDetail.objects.create(
+                            trainer_name=user,
+                            onboarded_by=admin_user,
+                            no_of_asanas_created=0,
+                            created_at=timezone.now(),
+                            updated_at=timezone.now()
+                        )
+                    else:
+                        EnrollmentDetails.objects.create(
+                            user=user,
+                            added_by=admin_user,
+                            student_status='ACCEPT',
+                            created_at=timezone.now(),
+                            updated_at=timezone.now()
+                        )
+                    success_count += 1
+
+            # messages.success(request, f'Successfully created {success_count} users.')
+            return render(request, 'users/Trainer_approval_Page.html')
+        else:
+            return render(request, 'users/Trainer_approval_Page.html')
+
     except Exception as e:
-        print(f"An error occurred: {e}")
-       
+        print(e)
+        #       messages.error(request, 'An error occurred while processing the file.')
         return render(request, 'users/staff_dashboard.html')
-
+       
+       
                 
 @login_required
 @user_passes_test(check_client)
 def student_mapped_to_courses(request):
     print("hello")
-    max_forms = 0
-    current_user=request.user
-    transaction = Order.objects.filter(name=current_user, status='ACCEPT').first()
-    if transaction:
-                subscription = transaction.subscription
-                max_forms = subscription.permitted_asanas
-    else:
-                print("No valid transaction found for the client.") 
-    students_added_by_client=EnrollmentDetails.objects.filter(added_by=current_user)
-    StudentCourseMappingFormSet = formset_factory(StudentCourseMappingForm, extra=max_forms, max_num=max_forms, validate_max=True, absolute_max=max_forms)
-    # remaining_forms = max_forms - 
-    
+    admin_user=request.user
+    print(admin_user)
+    if admin_user:
+       order_transaction = Order.objects.filter(name=admin_user,status='ACCEPT').first()
+       print(order_transaction)
+       if not order_transaction:
+            print("trainaction not found")
+            # sweeetify alert
+            return render(request,'users/Trainer_approval_Page.html')
+
     if request.method == 'POST':
-        form = StudentCourseMappingForm(request.POST)
+        
+        form = StudentCourseMappingForm(request.POST,user=request.user)
     
         if form.is_valid():
             student_user = form.cleaned_data['user']
@@ -254,10 +272,15 @@ def student_mapped_to_courses(request):
             
             # Save the EnrollmentDetails object
             enrollment.save()
+            
 
           
             # messages.success(request, "Courses mapped to student successfully")
-            return render(request,'users/trainer_dashboard.html')  
+        return render(request,'users/trainer_dashboard.html',{
+            'forms': forms,
+              
+            
+        })  
 
             
             
@@ -280,22 +303,143 @@ def student_mapped_to_courses(request):
 def profile_view(request):
     return render(request,'users/profile.html',{'user': request.user})
 
-@login_required
-@user_passes_test(check_trainer )
-def Trainer_dashboard(request):
-    try: 
-        trainer = CourseDetails.objects.get(user=request.user)
 
-      
-        
-        return render(request, "users/trainer_dashboard.html")
-    except CourseDetails.DoesNotExist:
-        print("Trainer does not exist")
-        return HttpResponse("Trainer details not found", status=404)  
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        return HttpResponse("An unexpected error occurred", status=500)
+# class CourseCreationView(LoginRequiredMixin, UserPassesTestMixin, View):
+#     def test_func(self):
+#         return check_trainer(self.request.user) or check_client(self.request.user)
+#     def get(self,request,*args,**kwargs):
+#         current_user=self.request.user
+#         print(current_user)
+#         form =CourseCreationForm
+#         if 'update' in request.GET:
+#             course_id=request.GET.get('course_id')
+#             course=CourseDetails.get(id=course_id)
+#             form=CourseCreationForm(instance=course)
+#             return render(request, "users/update_course.html", {
+#                 'form': form,
+#                 'course_id':course_id ,
+#                 'is_trainer': True,
+#             })
+#         else:
+#             form =CourseCreationForm()
+#             return render(request, "users/create_asana.html", {
+#                 'form': form,
+#                 'is_trainer': True,
+#             })
+#     def post(self, request, *args, **kwargs):
+#         form =CourseCreationForm
+#         if 'update_course' in request.POST:
+#             course_id=request.POST.get('course_id')
+#             course=CourseDetails.get(id=course_id)
+#             form=CourseCreationForm(instance=course)
+#             if form.is_valid():
+#                 form.save()
+#                 return redirect("view-trained")
+#             else:
+#                  return render(request, "users/update_asana.html", {
+#                     'form': form,
+#                     'course_id': course_id,
+#                     'is_trainer': True,
+#                 })
+#         elif 'delete_asana' in request.POST:
+#             course_id=request.POST.get('course_id')
+#             course=CourseDetails.get(id=course_id)
+#             course.delete()
+#         else:
+#             form =CourseCreationForm(request.POST)
+#             if form.is_valid():
+#                 course=form.save(commit=False)
+#                 course = form.save(commit=False)  # Create the instance but don't save it yet
+#                 course.user = request.user  # Set the user field
+#                 course.created_at = timezone.now()  # Set the created_at field
+#                 course.updated_at = timezone.now()  # Set the updated_at field
+#                 course.save()  # Save the instance to the database
+#                 form.save_m2m()  # Save the many-to-many data
+#                 return redirect('view-trained')
+#             else:
+#                 return render(request, "users/trainer_dashboard.html")
 
+
+           
+
+
+class CourseCreationView(LoginRequiredMixin, UserPassesTestMixin, View):
+    def test_func(self):
+        return check_trainer(self.request.user) or check_client(self.request.user)
+
+    def get(self, request, *args, **kwargs):
+        current_user=self.request.user
+        course_id = request.GET.get('course_id')
+        if course_id:
+            course = get_object_or_404(CourseDetails, id=course_id)
+           
+            
+            form = CourseCreationForm(instance=course,user=self.request.user)
+            return render(request, "users/update_course.html", {
+                'form': form,
+                'course_id': course_id,
+                'is_trainer': True,
+            })
+        else:
+            form = CourseCreationForm(user=self.request.user)
+            courses=CourseDetails.objects.filter(user=current_user)
+
+            return render(request, "users/trainer_dashboard.html", {
+                'form': form,
+                'is_trainer': True,
+                'courses':courses,
+            })
+
+    def post(self, request, *args, **kwargs):
+        course_id = request.POST.get('course_id')
+        current_user=self.request.user
+        if 'update_course' in request.POST:
+            course = get_object_or_404(CourseDetails, id=course_id)
+            form = CourseCreationForm(request.POST, instance=course,user=self.request.user)
+            if form.is_valid():
+                form.save() 
+                # form.save_m2m()  # Save many-to-many data
+                return redirect('view-trained')
+            else:
+                return render(request, "users/update_course.html", {
+                    'form': form,
+                    'course_id': course_id,
+                    'is_trainer': True,
+                })
+
+        elif 'delete_course' in request.POST:
+            course = get_object_or_404(CourseDetails, id=course_id)
+            course.delete()
+            return redirect('view-trained')
+
+        else:
+            form = CourseCreationForm(request.POST,user=self.request.user)
+            if form.is_valid():
+                course = form.save(commit=False)
+                course.user = request.user
+                course.created_at = timezone.now()
+                course.updated_at = timezone.now()
+                course.save()  # Save the instance to the database
+                form.save_m2m()  # Save many-to-many data
+                return redirect('view-trained')
+            else:
+                return render(request, "users/create_course.html", {
+                    'form': form,
+                    'is_trainer': True,
+                })
+
+
+
+
+
+
+    
+
+                
+            
+
+
+  
 
 
 def user_login(request):
@@ -340,95 +484,123 @@ def view_posture(request,asana_id):
     })
 
 
-@login_required
-@user_passes_test(lambda u: check_trainer(u) or check_client(u))
-def create_asana(request):
-   
-    max_forms = 0
-  
-    try:
-        trainee_name = request.user
-        client_for_trainer = CourseDetails.objects.filter(user=trainee_name).first()
-        
-        if client_for_trainer:
-            print("entered")
-            client = client_for_trainer.added_by
-            created_asanas_by_trainer, created = CourseDetails.objects.get_or_create(asanas_created_by_user=trainee_name, defaults={'no_of_asanas_created': 0})
-            print(created_asanas_by_trainer, "created asanas by trainer")
-            no_of_asanas_created_by_trainee = created_asanas_by_trainer.no_of_asanas_created
-            print(no_of_asanas_created_by_trainee, "no of asanas created by trainee")
+class CreateAsanaView(LoginRequiredMixin, UserPassesTestMixin, View):
+    def test_func(self):
+        return check_trainer(self.request.user) or check_client(self.request.user)
 
-            transaction = Order.objects.filter(name=client, status='ACCEPT').first()
-            
-            if transaction:
-                subscription = transaction.subscription
-                max_forms = subscription.permitted_asanas
+    def get_max_forms(self,request):
+        trainee_name=self.request.user
+        try:
+            print(trainee_name)
+            client_for_trainer = TrainerLogDetail.objects.filter(trainer_name=trainee_name).first()
+            if client_for_trainer:
+                client = client_for_trainer.onboarded_by
+                no_of_asanas_created_by_trainee = client_for_trainer.no_of_asanas_created
+
+                transaction = Order.objects.filter(name=client, status='ACCEPT').first()
+                if transaction:
+                    subscription = transaction.subscription
+                    max_forms = subscription.permitted_asanas
+                else:
+                    max_forms = 1
+                    no_of_asanas_created_by_trainee = 0
             else:
-                print("No valid transaction found for the client.")
-        else:
-            print("No client for trainer found.")
+                max_forms = 1
+                no_of_asanas_created_by_trainee = 0
+        except Exception as e:
+            print(f"Exception occurred: {e}")
+            max_forms = 1
             no_of_asanas_created_by_trainee = 0
 
-    except Exception as e:
-        print(f"Exception occurred: {e}")
-        max_forms = 1
-        no_of_asanas_created_by_trainee = 0
+        return max_forms, no_of_asanas_created_by_trainee
 
-    if max_forms <= 0:
-        max_forms = 1
-
-    AsanaCreationFormSet = formset_factory(AsanaCreationForm, extra=max_forms, max_num=max_forms, validate_max=True, absolute_max=max_forms)
-    remaining_forms = max_forms - no_of_asanas_created_by_trainee
-
-    if request.method == "POST":
-        formset = AsanaCreationFormSet(request.POST)
+    def get(self, request, *args, **kwargs):
+        max_forms, no_of_asanas_created_by_trainee = self.get_max_forms(request.user)
+        print(max_forms)
         
-        if formset.is_valid():
-            for form in formset:
-                if remaining_forms > 0:
-                    asana = form.save(commit=False)
-                    asana.created_by = request.user
-                    asana.created_at = timezone.now()
-                    asana.last_modified_at = timezone.now()
-                    asana.save()
+        AsanaCreationFormSet = formset_factory(AsanaCreationForm, extra=1, max_num=max_forms, validate_max=True, absolute_max=max_forms)
 
-                    
-                    created_asanas_by_trainer.no_of_asanas_created += 1
-                    created_asanas_by_trainer.save()
-                    #here i need to create a object of enrollment details 
-                    # here i will add the asanas created by user in their course details
-                    # course=get_object_or_404(CourseDetails,user=trainee_name)
-                    # if 'asana' in request.POST:
-                    #       asanas_ids = request.POST.getlist('asanas')
-                    #       asanas = Asana.objects.filter(id__in=asanas_ids)
-                    #       course.asanas.set(asanas)
-                    #       course.updated_at = timezone.now()
-                    #       course.save()
-                    #       print("updated successfully")
-
-
-                    for i in range(1, asana.no_of_postures + 1):
-                             Posture.objects.create(name=f"Step-{i}", asana=asana, step_no=i)
-
-                    no_of_asanas_created_by_trainee += 1
-                    remaining_forms -= 1
-
-            return redirect("view-trained")
+        if 'update' in request.GET:
+            asana_id = request.GET.get('asana_id')
+            asana = Asana.objects.get(id=asana_id)
+            form = AsanaCreationForm(instance=asana)
+            return render(request, "users/update_asana.html", {
+                'form': form,
+                'asana_id': asana_id,
+                'is_trainer': True,
+            })
         else:
-            print("Formset is not valid")
-            print(formset.errors)
+            formset = AsanaCreationFormSet()
+            return render(request, "users/create_asana.html", {
+                'formset': formset,
+                'is_trainer': True,
+            })
 
-    else:
-        formset = AsanaCreationFormSet()
+    def post(self, request, *args, **kwargs):
+        max_forms, no_of_asanas_created_by_trainee = self.get_max_forms(request.user)
+        AsanaCreationFormSet = formset_factory(AsanaCreationForm, extra=1, max_num=max_forms, validate_max=True, absolute_max=max_forms)
+        created_asanas_by_trainer = TrainerLogDetail.objects.get(trainer_name=request.user)
+        remaining_forms = max_forms - no_of_asanas_created_by_trainee
 
-    return render(request, "users/create_asana.html", {
-        'formset': formset,
-        'is_trainer': True,
-    })
+        if 'update_asana' in request.POST:
+            asana_id = request.POST.get('asana_id')
+            asana = Asana.objects.get(id=asana_id)
+            form = AsanaCreationForm(request.POST, instance=asana)
+            if form.is_valid():
+                form.save()
+                return redirect("view-trained")
+            else:
+                return render(request, "users/update_asana.html", {
+                    'form': form,
+                    'asana_id': asana_id,
+                    'is_trainer': True,
+                })
 
+        elif 'delete_asana' in request.POST:
+            asana_id = request.POST.get('asana_id')
+            asana = Asana.objects.get(id=asana_id)
+            asana.delete()
+            created_asanas_by_trainer.no_of_asanas_created -= 1
+            created_asanas_by_trainer.save()
+            return redirect("view-trained")
 
+        else:
+            formset = AsanaCreationFormSet(request.POST)
+            if formset.is_valid():
+                for form in formset:
+                    if remaining_forms > 0:
+                        
+                        asana = form.save(commit=False)
+                        asana.created_by = request.user
+                        asana.created_at = timezone.now()
+                        asana.last_modified_at = timezone.now()
+                        asana.save()
 
+                        created_asanas_by_trainer.no_of_asanas_created += 1
+                        # created_asanas_by_trainer.asanas_by_trainer.add(asana)
+                        # created_asanas_by_trainer.user = request.user
+                        # created_asanas_by_trainer.course_name = course_name
+                        # created_asanas_by_trainer.description = description
+                        created_asanas_by_trainer.created_at = timezone.now()
+                        created_asanas_by_trainer.updated_at = timezone.now()
+                        created_asanas_by_trainer.save()
+
+                        for i in range(1, asana.no_of_postures + 1):
+                            Posture.objects.create(name=f"Step-{i}", asana=asana, step_no=i)
+
+                        no_of_asanas_created_by_trainee += 1
+                        remaining_forms -= 1
+                return redirect("view-trained")
+            else:
+                return render(request, "users/create_asana.html", {
+                    'formset': formset,
+                    'is_trainer': True,
+                })
    
+
+
+                
+            
 
 
 

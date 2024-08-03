@@ -1,42 +1,64 @@
 {% extends 'users/staff_dashboard.html' %}
+{% load static %}
+
 {% block body %}
-{% comment %} <div class="container mt-5">
-    <div class="row row-cols-1 row-cols-md-3 g-4">
-        {% endcomment %}
-<div class="col">
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title text-center">Add students</h5>
-            {% comment %} <p class="card-text text-center">view student approval</p>    {% endcomment %}
-            <a href="#" class="btn btn-primary d-block mx-auto">Approve Students </a>
+<div class="container mt-5">
+    <h2 class="text-center">
+        {% if form.instance.id %}
+            Update Course
+        {% else %}
+            Create Course
+        {% endif %}
+    </h2>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <form method="POST">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" name="{% if form.instance.id %}update_course{% else %}create_course{% endif %}" class="btn btn-primary">
+                    {% if form.instance.id %}Update Course{% else %}Create Course{% endif %}
+                </button>
+                {% if form.instance.id %}
+                <form method="POST" action="{% url 'create-course' %}" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="course_id" value="{{ form.instance.id }}">
+                    <button type="submit" name="delete_course" class="btn btn-danger">Delete Course</button>
+                </form>
+                {% endif %}
+            </form>
         </div>
     </div>
 </div>
-</div>
-<br>
-{% comment %} </div> {% endcomment %}
 
-<div class="container">
-    <h3 class="text-center">Your Students </h3>
-</div>
-<br>
-
-<div class="col-xl-10 col-md-10 mb-4 product-card" style="margin-left: 8%;">
-    {% for student in students%}    
-    <div class="col-xl-10 col-md-10 mb-4 product-card" style="margin-left: 8%;">
-        <div class="card shadow">
-            <div class="card-body p-3 pb-0">
-                <div class="row no-gutters align-items-center float-left">
-                    <div class="col">
-                        <div style="font-size: large;" class="font-weight-bold text-primary card-title">
-                            {{ student.user }} 
+<div class="container mt-5">
+    <h2 class="text-center">Your Courses</h2>
+    <div class="row">
+        {% for course in courses %}
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="font-weight-bold text-primary mb-1">
+                                {{ course.course_name }}
+                            </div>
+                            <div class="mb-0 font-weight-bold text-gray-800">
+                                {{ course.description }}
+                            </div>
+                            <a href="{% url 'create-course' %}?course_id={{ course.id }}">Edit</a>
+                            <form method="post" action="{% url 'create-course' %}" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="course_id" value="{{ course.id }}">
+                                <button type="submit" name="delete_course" class="btn btn-danger btn-sm">Delete</button>
+                            </form>
                         </div>
+
                     </div>
                 </div>
             </div>
         </div>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>
 
 {% endblock %}

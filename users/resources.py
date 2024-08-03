@@ -25,4 +25,4 @@ class PersonResource(resources.ModelResource):
     class Meta:
         model = User
         fields = ('username', 'email', 'first_name', 'last_name', 'roles','password')
-        import_id_fields = ('username',)
+        import_id_fields = ('email',)

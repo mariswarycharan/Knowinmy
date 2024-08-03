@@ -87,7 +87,7 @@
             {% for group in request.user.groups.all %}
                 {% if group.name == 'Trainer' %}
                     <li class="nav-item active">
-                        <a class="nav-link" href="{% url 'Trainer-dashboard' %}">
+                        <a class="nav-link" href="{% url 'create-course' %}">
                             <i class="fas fa-fw fa-tachometer-alt"></i>
                             <span> Dashboard </span>
                         </a>

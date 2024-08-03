@@ -10,7 +10,7 @@ urlpatterns =[
     path("",home,name="home"),
     path("login/",user_login,name="login"),
     path("register/",register,name="register"),
-    path("create_asana/",create_asana,name="create-asana"),
+    path('create_asana/', CreateAsanaView.as_view(), name='create-asana'),
     path("staff_dashboard/",staff_dashboard_function,name="staff_dashboard"),
     # path("reset_password/",auth_ views,PasswordResetView.as_view()),
     path("reset_password/", auth_views.PasswordResetView.as_view(), name="password_reset"),
@@ -36,7 +36,17 @@ urlpatterns =[
     
     # add student 
    
-    path("trainer_dashboard/",Trainer_dashboard,name="Trainer-dashboard"),
+    path("trainer_dashboard/",CourseCreationView.as_view(),name="create-course"),
+
+
+    # CRUD FOR ASANA CREATION 
+    path('update_asana/<int:asana_id>/', CreateAsanaView.as_view(), name='update_asana'),
+    # path('delete_asana/<int:asana_id>/', create_asana, name='delete_asana'),
+
+
+    # crud for course creation
+    path('update_course/<int:course_id/',CourseCreationView.as_view(),name='update_course'),
+    
    
     #profile
     path('profile/',profile_view,name='profile-user'),
