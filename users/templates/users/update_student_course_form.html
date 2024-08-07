@@ -1,0 +1,15 @@
+
+{% load static %}
+
+<h1>sufgggggggggggggggggg</h1>
+<div id="form-container">
+    
+    <form id="update_course_map_form" method="post" action="{% url 'student-mapp-courses' %}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="hidden" name="enrollment_id" value="{{ enrollment_id }}">
+        <button type="submit" name="update_course_map_form">Update Course</button>
+    </form>
+</div>
+
+

@@ -1,18 +1,77 @@
-{% load static%}
-<html>
+{% extends 'users/staff_dashboard.html' %}
+{% load static %}
 
-<body>
-    <h1>Student Form</h1>
-    <form method="post" action="">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Submit</button>
-    </form>
-    {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-</body>
+{% block body %}
+<div class="container mt-5">
+    <h2 class="text-center">
+        {% if form.instance.id %}
+            Update Enrollment
+        {% else %}
+            Create Enrollment
+        {% endif %}
+    </h2>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <form method="POST">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" name="create_course_map_form" class="btn btn-primary">
+                    Create Enrollment
+                </button>
+            </form>
+            {% if form.instance.id %}
+            <form method="POST" action="{% url 'student-mapp-courses' %}" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="enrollment_id" value="{{ form.instance.id }}">
+                <button type="submit" name="delete_course_map_form" class="btn btn-danger">Delete Course</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<div class="container mt-5">
+    <h2 class="text-center">Enrollment Details</h2>
+    <div class="row">
+        {% for enrollment in enrollment_details %}
+        <div class="col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="font-weight-bold text-primary mb-1">
+                                {{ enrollment.user.username }}
+                            </div>
+                            <div class="mb-0 font-weight-bold text-gray-800">
+                                Enrolled Courses:
+                                <ul>
+                                    {% for course in enrollment.students_added_to_courses.all %}
+                                    <li>{{ course.course_name }}</li>
+                                    {% empty %}
+                                    <li>No courses enrolled.</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <div class="text-gray-800">
+                                Created at: {{ enrollment.created_at }}
+                            </div>
+                            <div class="text-gray-800">
+                                Last modified at: {{ enrollment.updated_at }}
+                            </div>
+                            <a href="{% url 'student-mapp-courses' %}?enrollment_id={{ enrollment.id }}"name='update_course_map_form' class="btn btn-sm btn-primary">Edit</a>
+                            <form method="POST" action="{% url 'student-mapp-courses' %}" style="display:inline;">
+                                {% csrf_token %}
+
+                                <input type="hidden" name="enrollment_id" value="{{ enrollment.id }}">
+                                <button type="submit" name="delete_course_map_form" class="btn btn-danger btn-sm">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p>No enrollment details available.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 import os
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
 SETTINGS_PATH = os.path.dirname(os.path.dirname(__file__))
 
@@ -42,12 +44,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'social_django',
 
     'users',
     'crispy_forms',
     'import_export',
     'tablib',
     'openpyxl',
+
+    
 ]
 
 MIDDLEWARE = [
@@ -58,6 +63,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'social_django.middleware.SocialAuthExceptionMiddleware',
 ]
 
 ROOT_URLCONF = 'yoga.urls'
@@ -73,6 +79,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'social_django.context_processors.backends',
                 
             ],
         },
@@ -188,3 +195,62 @@ EMAIL_HOST_PASSWORD = 'dvairrrqlnulsmny'  # SMTP server password
 # RAZORPAY INTEGERATION 
 RAZORPAY_KEY_ID='rzp_test_gH8crtxqRW3cZr'
 RAZORPAY_KEY_SECRET='EMEAVJGJAygp5zbJh5MSjkXY'
+
+#social app custom settings
+AUTHENTICATION_BACKENDS = [
+    'social_core.backends.google.GoogleOAuth2',
+    # 'social_core.backends.facebook.FacebookOAuth2',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    'social_core.pipeline.social_auth.associate_by_email',
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
+)
+
+LOGIN_URL = 'login/'
+LOGIN_REDIRECT_URL = 'http://localhost:8000/social-auth/complete/google-oauth2/'
+LOGOUT_URL = 'logout'
+LOGOUT_REDIRECT_URL = 'login/'
+
+
+
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY='60405106027-3313c38rudkdq40kbecod7ph6h01kiih.apps.googleusercontent.com'
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET ='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'
+
+
+
+
+# Session settings
+SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Don't expire the session when the browser closes
+SESSION_SAVE_EVERY_REQUEST = True  # Save the session to extend its expiry on every request
+
+
+
+
+
+
+
+
+
+
+sentry_sdk.init(
+    dsn="https://28471d1821c73d7bd3d41744c4f43765@o4507736382636032.ingest.us.sentry.io/4507736387616768",
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,integrations=[DjangoIntegration()],
+   
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,
+)

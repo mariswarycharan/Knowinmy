@@ -30,7 +30,7 @@
     </div>
 </div>
 
-<div class="container mt-5">
+<div class="containe mt-5">
     <h2 class="text-center">Your Courses</h2>
     <div class="row">
         {% for course in courses %}
@@ -60,5 +60,6 @@
         {% endfor %}
     </div>
 </div>
+<a href="{% url 'student-mapp-courses' %}"> COURSE CREATION FOR STUDENTS </a>
 
 {% endblock %}

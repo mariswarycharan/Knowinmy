@@ -3,6 +3,7 @@ from .views import *
 from django.conf.urls.static import static
 from django.conf import settings
 from django.contrib.auth import views as auth_views
+from django.urls import path, include
 
 
 urlpatterns =[
@@ -17,6 +18,10 @@ urlpatterns =[
     path("reset_password_sent/", auth_views.PasswordResetDoneView.as_view(), name="password_reset_done"),
     path("reset/<uidb64>/<token>/", auth_views.PasswordResetConfirmView.as_view(), name="password_reset_confirm"),
     path("reset_password_complete/", auth_views.PasswordResetCompleteView.as_view(), name="password_reset_complete"),
+
+
+
+    
 
     
 
@@ -52,7 +57,8 @@ urlpatterns =[
     path('profile/',profile_view,name='profile-user'),
 
     # student mapping
-    path('student_mapping/',student_mapped_to_courses,name='student-mapp-courses'),
+    path('student_mapping/',StudentCourseMapView.as_view(),name='student-mapp-courses'),
+    path('update_student_course/<int:enrollment_i',StudentCourseMapView.as_view(),name='student-course-update'),
    
 
 
@@ -65,9 +71,7 @@ urlpatterns =[
     # dashboard page 
     path('dashboard/',dashboard,name='dashboard'),
 
-    #accuracy page 
-    path('record_accuracy/', record_accuracy, name='record-accuracy'),
-    path('finalize_accuracy',finalize_accuracy,name='finalize-accuracy'),
+   
 
     #subscription page 
     path('subscription_plans/',subscription_plans,name='subscription-plans'),

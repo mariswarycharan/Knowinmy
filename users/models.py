@@ -77,12 +77,14 @@ class CourseDetails(models.Model):
     
 class EnrollmentDetails(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="enrolled_courses", verbose_name="Student Name", null=True, blank=True)
-    added_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="enrollments_added", null=True, blank=True)
-    # trainer = models.ForeignKey(CourseDetails, on_delete=models.SET_NULL, related_name="trainer_enrollments", null=True, blank=True, verbose_name="name")
-    student_status=models.CharField(max_length=10, choices=status_choices, default='PENDING')
     created_at=models.DateTimeField(verbose_name='Created at',null=True)
     updated_at= models.DateTimeField(verbose_name='Last modified at',null=True)
     students_added_to_courses=models.ManyToManyField(CourseDetails,related_name="course_asanas", blank=True)
+
+
+    def __str__(self):
+       return  self.user.username
+
 
 
 
@@ -190,4 +192,22 @@ class TrainerLogDetail(models.Model):
     no_of_asanas_created=models.PositiveIntegerField(null=True,blank=True,default=0)
     created_at=models.DateTimeField(verbose_name='Created at',null=True)
     updated_at= models.DateTimeField(verbose_name='Last modified at',null=True)
+
+    def __str__(self):
+       return  self.trainer_name.username
+
    
+
+
+class StudentLogDetail(models.Model):
+    student_name=models.ForeignKey(User,on_delete=models.CASCADE,null=True,blank=True,related_name='student')
+    added_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="enrollments_added", null=True, blank=True)
+    created_at=models.DateTimeField(verbose_name='Created at',null=True)
+    updated_at= models.DateTimeField(verbose_name='Last modified at',null=True)
+   
+
+    def __str__(self):
+       return  self.student_name.username
+
+
+

@@ -9,25 +9,28 @@
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="font-weight-bold text-primary mb-1">
-                                {{asana.name}}</div>
-                            <div class="mb-0 font-weight-bold text-gray-800">{{asana.no_of_postures}} postures</div>
-                        </div>
-                        <div class="col-auto">
-                            <a href="{% url 'user-view-posture' asana.id %}">
-                            <div class="col-auto">
-                                <i class="fas fa-arrow-right fa-2x text-gray-300"></i>
+                            <h5 class="font-weight-bold text-primary mb-1">
+                                {{ asana.course_name }}
+                            </h5>
+                            <div class="mb-0 font-weight-bold text-gray-800 custom-bullets">
+                                <ul>
+                                    {% for asana_detail in asana.asanas_by_trainer.all %}
+                                    <li>
+                                        <a href="{% url 'user-view-posture' asana_detail.id %}">
+                                            {{ asana_detail.name }}
+                                        </a>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
                             </div>
-                            </a>
-                            
                         </div>
+                        <!-- Removed the arrow section -->
                     </div>
-                    
-                    
                 </div>
             </div>
         </div>
-        {% endfor%}
+        {% endfor %}
     </div>
 </div>
+
 {% endblock %}

@@ -1,7 +1,7 @@
 from decimal import Decimal
 import json
-
-
+from django.contrib.auth import authenticate, login as auth_login
+from sentry_sdk import capture_exception
 from django.views import View
 # from bulkmodel.models import BulkModel
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -56,6 +56,12 @@ def register(request):
 
 
 
+
+@login_required
+def profile_view(request):
+    return render(request,'users/profile.html',{'user': request.user})
+
+
 @login_required
 @user_passes_test(check_client)
 def subscription_payment(request):
@@ -75,8 +81,9 @@ def subscription_payment(request):
                 discounted_percentage_for_client = Decimal(coupon.discount_percentage)
                 discounted_amount_after_negotiation = amount - (discounted_percentage_for_client / Decimal(100)) * amount
                 amount=discounted_percentage_for_client
-            except CouponCodeForNegeotiation.DoesNotExist:
+            except CouponCodeForNegeotiation.DoesNotExist as e:
                print("no coupon found")
+               capture_exception(e)
                 # Proceed with the original amount if the coupon code is invalid
 
         client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
@@ -143,6 +150,7 @@ def callback(request):
             provider_order_id = json.loads(request.POST.get("error[metadata]")).get("order_id")
         except (TypeError, json.JSONDecodeError, AttributeError) as e:
             print(f"Error parsing error metadata: {e}")
+            capture_exception(e)
             return render(request, "users/callback.html", context={"status": 'REJECT'})
 
         order = Order.objects.get(provider_order_id=provider_order_id)
@@ -214,10 +222,9 @@ def Trainer_approval_function(request):
                             updated_at=timezone.now()
                         )
                     else:
-                        EnrollmentDetails.objects.create(
-                            user=user,
+                        StudentLogDetail.objects.create(
+                            student_name=user,
                             added_by=admin_user,
-                            student_status='ACCEPT',
                             created_at=timezone.now(),
                             updated_at=timezone.now()
                         )
@@ -231,203 +238,71 @@ def Trainer_approval_function(request):
     except Exception as e:
         print(e)
         #       messages.error(request, 'An error occurred while processing the file.')
+        capture_exception(e)
         return render(request, 'users/staff_dashboard.html')
+    
        
        
                 
-@login_required
-@user_passes_test(check_client)
-def student_mapped_to_courses(request):
-    print("hello")
-    admin_user=request.user
-    print(admin_user)
-    if admin_user:
-       order_transaction = Order.objects.filter(name=admin_user,status='ACCEPT').first()
-       print(order_transaction)
-       if not order_transaction:
-            print("trainaction not found")
-            # sweeetify alert
-            return render(request,'users/Trainer_approval_Page.html')
+# @login_required
+# @user_passes_test(check_client)
+# def student_mapped_to_courses(request):
+#     print("hello")
+#     admin_user=request.user
+#     print(admin_user)
+#     if admin_user:
+#        order_transaction = Order.objects.filter(name=admin_user,status='ACCEPT').first()
+#        print(order_transaction)
+#        if not order_transaction:
+#             print("trainaction not found")
+#             # sweeetify alert
+#             return render(request,'users/Trainer_approval_Page.html')
 
-    if request.method == 'POST':
+#     if request.method == 'POST':
         
-        form = StudentCourseMappingForm(request.POST,user=request.user)
+#         form = StudentCourseMappingForm(request.POST,user=request.user)
     
-        if form.is_valid():
-            student_user = form.cleaned_data['user']
-            print(student_user)
-            courses_to_be_mapped = form.cleaned_data['students_added_to_courses']
-            try:
-                print("entered line 232")
-            
-                enrollment= EnrollmentDetails.objects.get(user=student_user)
-                print(enrollment)
-            except:
-                enrollment = EnrollmentDetails(user=student_user)
-                enrollment.save()
-            print("successfully saved ")
-            enrollment.students_added_to_courses.set(courses_to_be_mapped)
+#         if form.is_valid():
+#             student_user = form.cleaned_data['user']
+#             print(student_user)
+#             courses_to_be_mapped = form.cleaned_data['students_added_to_courses']
+
+#             enrollment_student = User.objects.filter(username=student_user)
+#             enrollment= EnrollmentDetails.objects.filter(user__in=enrollment_student)
+                
+#             print("successfully saved ")
+#             enrollment.students_added_to_courses.set(courses_to_be_mapped)
 
            
             
-            # Save the EnrollmentDetails object
-            enrollment.save()
+#             # Save the EnrollmentDetails object
+#             enrollment.save()
             
 
           
-            # messages.success(request, "Courses mapped to student successfully")
-        return render(request,'users/trainer_dashboard.html',{
-            'forms': forms,
+#             # messages.success(request, "Courses mapped to student successfully")
+#             return render(request,'users/trainer_dashboard.html',{
+#                  'form': form,
               
             
-        })  
+#         }) 
+  
+
 
             
             
            
             
             
-    else:
-        form = StudentCourseMappingForm()
+#     else:
+#         form = StudentCourseMappingForm(user=request.user)
     
-    return render(request, 'users/student_mapping.html',{'form':form})
+#     return render(request, 'users/student_mapping.html',{'form':form})
     
-              
-                
-                
 
 
 
-
-@login_required
-def profile_view(request):
-    return render(request,'users/profile.html',{'user': request.user})
-
-
-# class CourseCreationView(LoginRequiredMixin, UserPassesTestMixin, View):
-#     def test_func(self):
-#         return check_trainer(self.request.user) or check_client(self.request.user)
-#     def get(self,request,*args,**kwargs):
-#         current_user=self.request.user
-#         print(current_user)
-#         form =CourseCreationForm
-#         if 'update' in request.GET:
-#             course_id=request.GET.get('course_id')
-#             course=CourseDetails.get(id=course_id)
-#             form=CourseCreationForm(instance=course)
-#             return render(request, "users/update_course.html", {
-#                 'form': form,
-#                 'course_id':course_id ,
-#                 'is_trainer': True,
-#             })
-#         else:
-#             form =CourseCreationForm()
-#             return render(request, "users/create_asana.html", {
-#                 'form': form,
-#                 'is_trainer': True,
-#             })
-#     def post(self, request, *args, **kwargs):
-#         form =CourseCreationForm
-#         if 'update_course' in request.POST:
-#             course_id=request.POST.get('course_id')
-#             course=CourseDetails.get(id=course_id)
-#             form=CourseCreationForm(instance=course)
-#             if form.is_valid():
-#                 form.save()
-#                 return redirect("view-trained")
-#             else:
-#                  return render(request, "users/update_asana.html", {
-#                     'form': form,
-#                     'course_id': course_id,
-#                     'is_trainer': True,
-#                 })
-#         elif 'delete_asana' in request.POST:
-#             course_id=request.POST.get('course_id')
-#             course=CourseDetails.get(id=course_id)
-#             course.delete()
-#         else:
-#             form =CourseCreationForm(request.POST)
-#             if form.is_valid():
-#                 course=form.save(commit=False)
-#                 course = form.save(commit=False)  # Create the instance but don't save it yet
-#                 course.user = request.user  # Set the user field
-#                 course.created_at = timezone.now()  # Set the created_at field
-#                 course.updated_at = timezone.now()  # Set the updated_at field
-#                 course.save()  # Save the instance to the database
-#                 form.save_m2m()  # Save the many-to-many data
-#                 return redirect('view-trained')
-#             else:
-#                 return render(request, "users/trainer_dashboard.html")
-
-
-           
-
-
-class CourseCreationView(LoginRequiredMixin, UserPassesTestMixin, View):
-    def test_func(self):
-        return check_trainer(self.request.user) or check_client(self.request.user)
-
-    def get(self, request, *args, **kwargs):
-        current_user=self.request.user
-        course_id = request.GET.get('course_id')
-        if course_id:
-            course = get_object_or_404(CourseDetails, id=course_id)
-           
-            
-            form = CourseCreationForm(instance=course,user=self.request.user)
-            return render(request, "users/update_course.html", {
-                'form': form,
-                'course_id': course_id,
-                'is_trainer': True,
-            })
-        else:
-            form = CourseCreationForm(user=self.request.user)
-            courses=CourseDetails.objects.filter(user=current_user)
-
-            return render(request, "users/trainer_dashboard.html", {
-                'form': form,
-                'is_trainer': True,
-                'courses':courses,
-            })
-
-    def post(self, request, *args, **kwargs):
-        course_id = request.POST.get('course_id')
-        current_user=self.request.user
-        if 'update_course' in request.POST:
-            course = get_object_or_404(CourseDetails, id=course_id)
-            form = CourseCreationForm(request.POST, instance=course,user=self.request.user)
-            if form.is_valid():
-                form.save() 
-                # form.save_m2m()  # Save many-to-many data
-                return redirect('view-trained')
-            else:
-                return render(request, "users/update_course.html", {
-                    'form': form,
-                    'course_id': course_id,
-                    'is_trainer': True,
-                })
-
-        elif 'delete_course' in request.POST:
-            course = get_object_or_404(CourseDetails, id=course_id)
-            course.delete()
-            return redirect('view-trained')
-
-        else:
-            form = CourseCreationForm(request.POST,user=self.request.user)
-            if form.is_valid():
-                course = form.save(commit=False)
-                course.user = request.user
-                course.created_at = timezone.now()
-                course.updated_at = timezone.now()
-                course.save()  # Save the instance to the database
-                form.save_m2m()  # Save many-to-many data
-                return redirect('view-trained')
-            else:
-                return render(request, "users/create_course.html", {
-                    'form': form,
-                    'is_trainer': True,
-                })
-
+    
 
 
 
@@ -443,20 +318,41 @@ class CourseCreationView(LoginRequiredMixin, UserPassesTestMixin, View):
 
 
 def user_login(request):
+    if request.user.is_authenticated:
+        for group in request.user.groups.all():
+            if group.name == 'Client':
+                return render(request, 'users/Trainer_approval_Page.html')
+            elif group.name == 'Trainer':
+                return render(request, 'users/view_trained.html')
+            else:
+                return redirect("staff_dashboard")
+
     if request.method == "POST":
-        
         email = request.POST.get("email")
         password = request.POST.get("password")
-        User_obj = User.objects.get(email=email)
-        user = auth.authenticate(username=User_obj.username,password=password)
-        if user is not None :
-            login(request,user)
-            for group in request.user.groups.all() :
-                if group.name == 'Trainer' or group.name == 'Student' or group.name == 'Client':
-                    return redirect("staff_dashboard")
-            return redirect("home")
-
-    return render(request,"users/login.html")
+        try:
+            user_obj = User.objects.get(email=email)
+            user = authenticate(username=user_obj.username, password=password)
+            if user is not None:
+                auth_login(request, user)
+                for group in request.user.groups.all():
+                    if group.name == 'Client':
+                        return render(request, 'users/Trainer_approval_Page.html')
+                    elif group.name == 'Trainer':
+                        return render(request, 'users/view_trained.html')
+                    else:
+                        return redirect("staff_dashboard")
+                return redirect("home")
+            else:
+                # If authentication fails, render login page with an error message
+                return render(request, "users/login.html", {"error": "Invalid credentials"})
+        except User.DoesNotExist as e:
+            capture_exception(e)
+            # If user does not exist, render login page with an error message
+            return render(request, "users/login.html", {"error": "User does not exist"})
+    
+    # Handle GET request
+    return render(request, "users/login.html")
 
 @login_required
 
@@ -473,7 +369,7 @@ def view_trained(request):
 
 @login_required
 
-@user_passes_test(check_trainer  or check_client)
+@user_passes_test(check_trainer  or  check_student)
 def view_posture(request,asana_id):
     postures = Posture.objects.filter(asana=Asana.objects.get(id=asana_id)).order_by('step_no')
    
@@ -486,7 +382,7 @@ def view_posture(request,asana_id):
 
 class CreateAsanaView(LoginRequiredMixin, UserPassesTestMixin, View):
     def test_func(self):
-        return check_trainer(self.request.user) or check_client(self.request.user)
+        return check_trainer(self.request.user) 
 
     def get_max_forms(self,request):
         trainee_name=self.request.user
@@ -509,6 +405,7 @@ class CreateAsanaView(LoginRequiredMixin, UserPassesTestMixin, View):
                 no_of_asanas_created_by_trainee = 0
         except Exception as e:
             print(f"Exception occurred: {e}")
+            capture_exception(e)
             max_forms = 1
             no_of_asanas_created_by_trainee = 0
 
@@ -522,6 +419,7 @@ class CreateAsanaView(LoginRequiredMixin, UserPassesTestMixin, View):
 
         if 'update' in request.GET:
             asana_id = request.GET.get('asana_id')
+            print(asana_id)
             asana = Asana.objects.get(id=asana_id)
             form = AsanaCreationForm(instance=asana)
             return render(request, "users/update_asana.html", {
@@ -599,115 +497,72 @@ class CreateAsanaView(LoginRequiredMixin, UserPassesTestMixin, View):
    
 
 
-                
-            
+class CourseCreationView(LoginRequiredMixin, UserPassesTestMixin, View):
+    def test_func(self):
+        return check_trainer(self.request.user)
 
-
-
-
-
-def record_accuracy(request):
-    if request.method == 'GET':
-        print("entered record_accuracy function")
-        try:
-            print("started to load the data")
-            data = json.loads(request.body)
-            print(data)
-            posture_id = data.get('posture_id')
-            print(posture_id)
-            accuracy = data.get('accuracy_for_posture')
-            print(accuracy)
-            try:
-                accuracy_values = []
-                posture_id_get_asana=Posture.objects.filter(id=posture_id)
-                asana_name=posture_id_get_asana.asana
-            
-                accuracy_values.append(accuracy)
-                print(accuracy, "data")
-                print(accuracy_values, "values")
-                if 'accuracy_values' not in request.session:
-                     request.session['accuracy_values']=[]
-                     request.session['accuracy_values'].append(accuracy)
-                     request.session.modified=True
-                     response_data = {'status': 'success', 'message': 'Accuracy recorded'}
-                     return JsonResponse(response_data,safe=False)
-            except:
-                return JsonResponse("error",safe=False)
-        except json.JSONDecodeError:
-                    return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
-    else:
-            return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)  
-
-
-
-@csrf_exempt
-def finalize_accuracy(request):
-    if request.method == 'POST':
-        try:
-            if 'accuracy_values' not in request.session or not request.session['accuracy_values']:
-                return JsonResponse({'status': 'error', 'message': 'No accuracy values to finalize'}, status=400)
-            accuracy_values = request.session.pop('accuracy_values')
-            average_accuracy = sum(accuracy_values) / len(accuracy_values)
-            data = json.loads(request.body)
-            posture_id = data.get('posture_id')
-            user = request.user
-            posture_id_get_asana=Posture.objects.filter(id=posture_id)
-            asana_name=posture_id_get_asana.asana
-            PostureAccuracy.objects.create(
-                asana_for_accuracy=asana_name,
-                accuracy=average_accuracy,
-                user=user,
-                recorded_at=timezone.now()
-            )
-
-            response_data = {
-                'status': 'success',
-                'average_accuracy': average_accuracy,
-                'message': 'Accuracy finalized and stored'
-            }
-            return JsonResponse(response_data)
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-    else:
-        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
-
-
-            
-    #         if accuracy_values:
-    #                 print("entered accuracy calculation")
-    #                 average_accuracy = sum(accuracy_values) / len(accuracy_values)
-    #                 get_posture_id = get_object_or_404(Posture, id=posture_id)
-    #                 asana=get_posture_id.asana
-    #                 print("asana",asana)
-    #                 user = request.user
-    #                 print(user)
-                    
-    #                 with transaction.atomic():# Create or update the PostureAccuracy object
-    #                           PostureAccuracy.objects.update_or_create(
-    #                                 asana_for_accuracy=asana_name,
-    #                                 user_to_calculate=user,
-    #                                 accuracy=average_accuracy,
-    #                                 recorded_at=timezone.now()
-                       
-    #                 )
-
-    #                 asana_overall_accuracy = calculate_asana_overall_accuracy(asana)
-    #                 user_overall_accuracy = calculate_user_overall_accuracy(user)
-
-    #                 context = {
-    #                     'status': 'success',
-    #                     'accuracy_for_posture': average_accuracy,
-    #                     'asana_overall_accuracy':  asana_overall_accuracy,
-    #                     'user_overall_accuracy':user_overall_accuracy
-    #                 }
-    #                 return render(request,'users/accuracy.html',context)
-    #         else:
-    #                 return JsonResponse({'status': 'error', 'message': 'No accuracy values provided'}, status=400)
+    def get(self, request, *args, **kwargs):
+        current_user = self.request.user
+        course_id = request.GET.get('course_id')
+        if course_id:
+            course = get_object_or_404(CourseDetails, id=course_id)
            
-    #     except json.JSONDecodeError:
-    #         return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
-    # else:
-    #     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+            
+            form = CourseCreationForm(instance=course,user=self.request.user)
+            return render(request, "users/update_course.html", {
+                'form': form,
+                'course_id': course_id,
+                'is_trainer': True,
+            })
+        else:
+            form = CourseCreationForm(user=self.request.user)
+            courses=CourseDetails.objects.filter(user=current_user)
+
+            return render(request, "users/trainer_dashboard.html", {
+                'form': form,
+                'is_trainer': True,
+                'courses':courses,
+            })
+
+    def post(self, request, *args, **kwargs):
+        course_id = request.POST.get('course_id')
+        current_user=self.request.user
+        if 'update_course' in request.POST:
+            course = get_object_or_404(CourseDetails, id=course_id)
+            print(course)
+            form = CourseCreationForm(request.POST, instance=course,user=self.request.user)
+            print(form)
+            if form.is_valid():
+                form.save() 
+                # form.save_m2m()  # Save many-to-many data
+                return redirect('view-trained')
+            else:
+                return render(request, "users/update_course.html", {
+                    'form': form,
+                    'course_id': course_id,
+                    'is_trainer': True,
+                })
+
+        elif 'delete_course' in request.POST:
+            course = get_object_or_404(CourseDetails, id=course_id)
+            course.delete()
+            return redirect('view-trained')
+
+        else:
+            form = CourseCreationForm(request.POST,user=self.request.user)
+            if form.is_valid():
+                course = form.save(commit=False)
+                course.user = request.user
+                course.created_at = timezone.now()
+                course.updated_at = timezone.now()
+                course.save()  # Save the instance to the database
+                form.save_m2m()  # Save many-to-many data
+                return redirect('view-trained')
+            else:
+                return render(request, "users/create_course.html", {
+                    'form': form,
+                    'is_trainer': True,
+                })
 
 
 
@@ -766,57 +621,274 @@ def edit_posture(request,posture_id):
         
     })
 
-@login_required
-def Add_Student(request):
-    # here i need to map the student with particular course 
-    # he can see only that asana 
 
 
 
-    return render(request,"add_student.html")
+
+
+
+class  StudentCourseMapView(LoginRequiredMixin, UserPassesTestMixin, View):
+    def test_func(self):
+        return check_trainer(self.request.user)
+    def get_enrollment_details(self,user):
+        trainer_details=TrainerLogDetail.objects.filter(trainer_name=self.request.user).first()
+        if trainer_details:
+            client_name=trainer_details.onboarded_by
+            print(client_name,"loll")
+            enrolled_studs = list(StudentLogDetail.objects.filter(added_by=client_name))
+            print(enrolled_studs,"line 621")
+            if enrolled_studs:
+
+
+                 student_name = []
+                 for student in enrolled_studs:
+                           student_name.append(student.student_name)
+
+                 print(type(student_name),student_name, "line 45465768")
+                 students = User.objects.filter(username__in=student_name)
+                 print(students,"lopppppppppppppghrdhj")
+            
+        
+                 enrollment_details=EnrollmentDetails.objects.filter(user__in=students)
+                 return enrollment_details
+        
+            
+        
+        else:
+            print("No students found")
+
+
+
+    def get(self, request, *args, **kwargs):
+        enrollment_details=self.get_enrollment_details(request.user)
+        print(enrollment_details,"kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk")
+        current_user = self.request.user
+        enrollment_id = request.GET.get('enrollment_id')
+        
+        print(enrollment_id,"kopopokjodjskja")
+        #here i need to get the trainer details 
+        # trainer_details=TrainerLogDetail.objects.filter(trainer_name=current_user).first()
+        # if trainer_details:
+        #     client_name=trainer_details.onboarded_by
+        #     print(client_name,"loll")
+
+        print(f"GET request received with enrollment_id: {enrollment_id}")
+
+
+            
+ 
+       
+        # enrolled_studs = list(StudentLogDetail.objects.filter(added_by=client_name))
+        # print(enrolled_studs,"line 621")
+        # if enrolled_studs:
+
+
+        #      student_name = []
+        #      for student in enrolled_studs:
+        #          student_name.append(student.student_name)
+
+        #      print(type(student_name),student_name, "line 45465768")
+        #      students = User.objects.filter(username__in=student_name)
+        #      print(students,"lopppppppppppppghrdhj")
+        #     #  for student in students:
+
+        #     #     c=student.username
+        #     #     print(student,"ifsihfiueahrkuhrkjh")
+        
+        #      enrollment_details=EnrollmentDetails.objects.filter(user__in=students)
+        #      print(enrollment_details,"sdfhdsjbfjhdbsfjh")
+        
+        # else:
+        #     print("No students found")
+
+
+        
+
+        
+        print("oooooooooooooooooooooooooooooooooooooooo")
+        # print(enrollment_id,"llllllllllllllllllll")
+        if  enrollment_id:
+            try:
+                 print("yet to update ","idsfsei")
+                 print(enrollment_id,"llllllllllllllllllll")
+                 enrollment = get_object_or_404(EnrollmentDetails, id=enrollment_id)
+                 print(enrollment,"sjfdssssssssssssssssssssssssssssssssssssssssss    ")
+                 form = StudentCourseMappingForm(instance=enrollment, user=self.request.user)
+          
+                 print(f"GET request received with enrollment_id for updation : {enrollment_id}")
+                 return render(request, "users/update_student_course_form.html", {
+                             'form': form,
+                             'enrollment_id': enrollment_id,
+})
+            except ValueError as e:
+                print(f"Invalid enrollment_id: {enrollment_id}")
+                capture_exception(e)
+                return render(request, "users/student_mapping.html", {
+                    'form': form,
+                    'enrollment_details': enrollment_details,
+                    'error': 'Invalid enrollment ID provided.'
+                })
+
+           
+
+  
+  
+        else:
+            print("lopp end")
+            form = StudentCourseMappingForm(user=self.request.user)
+            
+            # print(enrollment_details,'line 211')
+            return render(request, "users/student_mapping.html", {
+                'form': form,
+                 'enrollment_details': enrollment_details,
+            })
    
+    def post(self, request, *args, **kwargs):
+        print("hello world ")
+        enrollment_id = request.POST.get('enrollment_id')
+        enrollment_details=self.get_enrollment_details(request.user)
+        print(enrollment_id,"opppppppppppppppppppp")
+        current_user = self.request.user
+        print(current_user,"ooooooooooooooo")
+        # enrolled_studs = list(StudentLogDetail.objects.filter(added_by=self.request.user))
+        # if enrolled_studs:
+
+
+        #      student_name = []
+        #      for student in enrolled_studs:
+        #          student_name.append(student.student_name)
+
+        #      print(type(student_name),student_name, "line 45465768")
+        #      students = User.objects.filter(username__in=student_name)
+            
+        
+        #      enrollment_details=EnrollmentDetails.objects.filter(user__in=students)
+        #      print(enrollment_details,"sdfhdsjbfjhdbsfjh")
+            
+        
+        # else:
+        #     print("No students found")
+
+       
+        print("lollllllllllllllllllllllllll")
+        if 'update_course_map_form' in request.POST:
+            
+            try:
+                print("enterde to edit ")
+                enrollment_id=request.POST.get('enrollment_id')
+                print(enrollment_id,"kkkkkkkkkkkkkkkkk")
+                enrollment = get_object_or_404(EnrollmentDetails, id=enrollment_id)
+                form = StudentCourseMappingForm(request.POST, instance=enrollment, user=current_user)
+                if form.is_valid():
+                     form.save()
+                     return render(request,'users/student_mapping.html',{
+                                 'enrollment_details': enrollment_details,
+                                #    'enrolled_courses':enrolled_courses,
+                                 'enrollment_id': enrollment_id,
+                })
+                else:
+                    return render(request, "users/update_student_course_form.html", {
+                    'form': form,
+                    'enrollment_id': enrollment_id,
+                })
+            except EnrollmentDetails.DoesNotExist as e:
+                print(f"No EnrollmentDetails found with id: {enrollment_id}")
+                capture_exception(e)
+                return render(request, "users/student_mapping.html", {
+                    'form': form,
+                    # 'enrollment_details': enrollment_details,
+                    'error': f'No EnrollmentDetails found with id: {enrollment_id}'
+                })
+
+
+            
+        elif 'delete_course_map_form' in request.POST and enrollment_id:
+          try:
+            enrollment = get_object_or_404(EnrollmentDetails, id=enrollment_id)
+            enrollment.delete()
+            print(f"GET request received with enrollment_id: {enrollment_id}")
+            return render(request,'users/Trainer_approval_Page.html')
+
+            
+          except EnrollmentDetails.DoesNotExist as e:
+                print(f"No EnrollmentDetails found with id: {enrollment_id}")
+                capture_exception(e)
+                return render(request, "users/student_mapping.html", {
+                    'form': form,
+                    'enrollment_details': enrollment_details,
+                    'error': f'No EnrollmentDetails found with id: {enrollment_id}'
+                })
+              
+
+        else:
+            form = StudentCourseMappingForm(request.POST, user=current_user)
+            if form.is_valid():
+                enrollment = form.save(commit=False)
+                enrollment.created_at = timezone.now()
+                enrollment.updated_at = timezone.now()
+                enrollment.save()   
+                form.save_m2m()
+                return render(request, "users/Trainer_approval_Page.html", {
+                    'form': form,
+                     'enrollment_details': enrollment_details,
+                     'enrollment_id': enrollment_id,
+                })
+            else:
+                
+                    
+                print(f"GET request received with enrollment_id: {enrollment_id}")
+
+                print(enrollment_details,'line 211')
+                return render(request, "users/student_mapping.html", {
+                    'form': form,
+                    # 'enrollment_details': enrollment_details,
+                     'enrollment_id': enrollment_id,
+                })
+
+
+
+
+
+
+
 
 
 @login_required
 @user_passes_test(check_student)
 def user_view_asana(request):
-    asanas = Asana.objects.all()
-    current_user = request.user
-    print(current_user, "firstly get instance user")
-    try:
-                enrollment= EnrollmentDetails.objects.get(user=current_user)
-                print("it does not  returned 2 obj")
-    except:
-                enrollment = EnrollmentDetails(user=current_user)
-                enrollment.save()
-                
-   
-    
-    
-    courses=enrollment.students_added_to_courses.all()
-    print(courses)
-    trainer_asanas = []
-    print("hello world ")
-    
-    # Loop through each course to find the associated trainer and their asanas
-    for course in courses:
-        print("for loop for find the trainer")
-        # Assuming that `trainer` is a ForeignKey in CourseDetails to the User model
-        trainer = course.user
-        print(trainer)
-         # Modify based on your actual model relationship
+
+
+    current_user=request.user
+    print(current_user)
+
+    enrolled_student_to_courses=EnrollmentDetails.objects.filter(user=current_user)
+    trainer_asanas=[]
+    if enrolled_student_to_courses.exists():
+        all_courses=[]
+        for enrollment in enrolled_student_to_courses:
+            all_courses.extend(enrollment.students_added_to_courses.all())
+
+            print(all_courses)
         
-        if trainer:
-            # Fetch asanas associated with the trainer
-            asanas = Asana.objects.filter(created_by=trainer)
-            print(asanas)
-            trainer_asanas.extend(asanas)
-            print(trainer_asanas)
-    return render(request, "users/user_view_asana.html", {
+       
         
-            "trainer_asanas": trainer_asanas,
+        for course in all_courses:
+            trainer=course.user
+            print(trainer)
+            if trainer:
+                asanas=CourseDetails.objects.filter(user=trainer)
+                print(asanas,"llllllllllllllllllllllllllll")
+                trainer_asanas.extend(asanas)
+        return render(request, "users/user_view_asana.html", {
+        
+             "trainer_asanas": trainer_asanas,
             
-        })
+       })
+    else:
+        print("You are not enrroled into this course")
+        return render(request,"users/user_view_asana.html")
+
+
 
 
 @login_required
@@ -832,8 +904,9 @@ def user_view_posture(request,asana_id):
                    'is_trainer': True,
         
            })
-    except:
-        return JsonResponse("Eroor")
+    except Exception as e:
+        capture_exception(e)    
+        return JsonResponse({"error": "An error occurred"}, safe=False)
 
 
 
