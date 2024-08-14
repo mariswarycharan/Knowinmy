@@ -2,6 +2,7 @@ from django.apps import apps
 from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
 from .resources import PersonResource
+from django_celery_results.models import TaskResult
 
 
 class ListAdminMixin(object):

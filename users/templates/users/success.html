@@ -1,17 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS (if needed) -->
+    <style>
+        .alert {
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            font-size: 1.1rem;
+        }
+        .alert-heading {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .btn-lg {
+            font-size: 1.2rem;
+            padding: 0.75rem 1.5rem;
+        }
+        .container {
+            max-width: 800px;
+        }
+    </style>
+</head>
 
 
 
-
-{% block content %}
-<div class="container">
-    <div class="alert alert-success" role="alert">
-        <h4 class="alert-heading">Payment Successful!</h4>
-        <p>Thank you for your payment. Your transaction was successful.</p>
-        <hr>
-
-        <p class="mb-0">Amount: {{ order.amount }}</p>
-        <p class="mb-0">Status: {{ order.status }}</p>
+    <!-- Payment Status -->
+    <div class="container mt-5">
+        {% if order.status == 'ACCEPT' %}
+        <div class="alert alert-success" role="alert">
+            <h4 class="alert-heading">Payment Successful!</h4>
+            <p>Thank you for your payment. Your transaction was successful.</p>
+            <hr>
+            <p class="mb-0"><strong>Amount:</strong> ${{ order.amount }}</p>
+            <p class="mb-0"><strong>Status:</strong> {{ order.status }}</p>
+        </div>
+        {% elif order.status == 'REJECT' %}
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">Payment Failed!</h4>
+            <p>Unfortunately, your payment was not successful. Please try again.</p>
+            <hr>
+            <p class="mb-0"><strong>Transaction ID:</strong> {{ order.payment_id }}</p>
+            <p class="mb-0"><strong>Order ID:</strong> {{ order.provider_order_id }}</p>
+            <p class="mb-0"><strong>Amount:</strong> ${{ order.amount }}</p>
+            <p class="mb-0"><strong>Status:</strong> {{ order.status }}</p>
+        </div>
+        {% endif %}
+        <a href="{% url 'home' %}" class="btn btn-primary btn-lg">Back to Subscription Plans</a>
     </div>
-    <a href="{% url 'home' %}" class="btn btn-primary">Go to Home</a>
-</div>
-{% endblock %}
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

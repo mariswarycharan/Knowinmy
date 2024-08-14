@@ -211,3 +211,12 @@ class StudentLogDetail(models.Model):
 
 
 
+
+
+
+class  IdempotencyKey(models.Model):
+    key = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    response_data = models.JSONField(null=True, blank=True)
+    request_data = models.JSONField(null=True, blank=True)
+    status_code = models.IntegerField(null=True, blank=True)

@@ -2,14 +2,16 @@
 {% load crispy_forms_tags %}
 {% block body %}
 <div class="container">
-    <form method="post" action="">
+    <form method="post" id="asana_form" action="">
         {% csrf_token %}
+        
         {{ formset.management_form }}
         {% for form in formset %}
       
             {{ form|crispy }}
         {% endfor %}
-        <button type="submit" class="btn btn-primary" id="submit-button">Submit</button>
+        
+        <button type="submit" class="btn btn-primary" onclick="this.disabled=true;submit_form(); " id="submit-button">Submit</button>
     </form>
    
 
@@ -21,6 +23,11 @@
         {% endfor %}
     </ul>
 {% endif %}
+<script>
+        function submit_form() {
+        $("#asana_form").submit();
 
+    }
 
+</script>
 {% endblock %}

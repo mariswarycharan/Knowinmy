@@ -1,29 +1,42 @@
 {% extends 'users/staff_dashboard.html' %}
 
 {% block body %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Upload User Data</h1>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <form method="post"id="course-creation-form" enctype="multipart/form-data" action="{% url 'Trainer-approval' %}" class="p-4 border rounded shadow">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="excel_file" class="font-weight-bold">Choose Excel File</label>
+                    <input type="file" name="excel_file" id="excel_file" class="form-control-file" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block mt-4" onclick="this.disabled=true;submit_form()">Upload</button>
+            </form>
+        </div>
+    </div>
 
+    <br>
 
-<h1>Upload User Data</h1>
-<form method="post" enctype="multipart/form-data"action="{% url 'Trainer-approval' %}">
-    {% csrf_token %}
-    <input type="file" name="excel_file" required>
-    <button type="submit">Upload</button>
-</form>
-
-<br>
-
-<a href="{% url 'student-mapp-courses' %}" class="button">Courses for Student</a>
-
-
-
-{% if messages %}
-    <ul class="messages">
-        {% for message in messages %}
-            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-        {% endfor %}
-    </ul>
-{% endif %}
-
+    <!-- Message display -->
+    {% if messages %}
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-6">
+                <div class="alert alert-info">
+                    <ul class="mb-0">
+                        {% for message in messages %}
+                            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+<script>
+        function submit_form() {
+        $("#course-creation-form").submit();
+    }
+</script>
 {% endblock %}
-
-

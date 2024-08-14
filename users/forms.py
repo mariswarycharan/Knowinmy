@@ -85,7 +85,7 @@ class CourseCreationForm(forms.ModelForm):
             # Filter the queryset based on the asanas created by the current_user
             self.fields['asanas_by_trainer'] = forms.ModelMultipleChoiceField(
             queryset=Asana.objects.filter(created_by=self.user),widget=forms.CheckboxSelectMultiple)
-        self.fields['description'].widget = forms.Textarea(attrs={'rows': 4})
+        self.fields['description'].widget = forms.Textarea(attrs={'rows': 2})
 
 
 

@@ -45,12 +45,19 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'social_django',
+    'celery',
+    'django_celery_results',
+
 
     'users',
     'crispy_forms',
     'import_export',
     'tablib',
     'openpyxl',
+    'sweetify',
+ 
+    # 'django_celery_beat',
+    # 'django_celery_results',
 
     
 ]
@@ -58,8 +65,10 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'users.middleware.idempotent_post_middleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -109,7 +118,7 @@ else:
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
             'ATOMIC_REQUESTS': True,
-        }
+        }   
     }
 
 
@@ -181,18 +190,22 @@ CSRF_TRUSTED_ORIGINS = ["https://test1.knowinmy.com", "https://staging.knowinmy.
 
 
 
+
+
+
 #SMTP CONFIGURATION 
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 EMAIL_HOST = 'smtp.example.com'  # SMTP server host
 EMAIL_PORT = 587  # SMTP server port (587 for TLS, 465 for SSL)
+EMAIL_HOST_PORT = 25    
 EMAIL_USE_TLS = True  # True for TLS, False for SSL
 
 
 
 
 # RAZORPAY INTEGERATION 
-RAZORPAY_KEY_ID='rzp_test_gH8crtxqRW3cZr'
+RAZORPAY_KEY_ID='rzp_test_gH8crtxqRW3cZr' 
 RAZORPAY_KEY_SECRET='EMEAVJGJAygp5zbJh5MSjkXY'
 
 #social app custom settings
@@ -253,3 +266,28 @@ sentry_sdk.init(
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,
 )
+
+
+
+
+
+
+
+
+
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6380/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+
+
+
+CELERY_BROKER_URL = "redis://localhost:6380"
+CELERY_RESULT_BACKEND='django-db'

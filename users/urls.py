@@ -4,20 +4,30 @@ from django.conf.urls.static import static
 from django.conf import settings
 from django.contrib.auth import views as auth_views
 from django.urls import path, include
+from .views import CreateAsanaView
+
+from django.contrib.auth import views as auth_views
+
+
 
 
 urlpatterns =[
 
     path("",home,name="home"),
-    path("login/",user_login,name="login"),
+    path('payment/',subscription_payment,name='subscription-payment'),
+    path("razorpay/callback/", callback, name="callback"),
     path("register/",register,name="register"),
+    path("login/",user_login,name="login"),
+    path("logout/",log_out,name="logout"),
+   
     path('create_asana/', CreateAsanaView.as_view(), name='create-asana'),
     path("staff_dashboard/",staff_dashboard_function,name="staff_dashboard"),
-    # path("reset_password/",auth_ views,PasswordResetView.as_view()),
-    path("reset_password/", auth_views.PasswordResetView.as_view(), name="password_reset"),
-    path("reset_password_sent/", auth_views.PasswordResetDoneView.as_view(), name="password_reset_done"),
-    path("reset/<uidb64>/<token>/", auth_views.PasswordResetConfirmView.as_view(), name="password_reset_confirm"),
-    path("reset_password_complete/", auth_views.PasswordResetCompleteView.as_view(), name="password_reset_complete"),
+    # # path("reset_password/",auth_ views,PasswordResetView.as_view()),
+    # path("reset_password/", auth_views.PasswordResetView.as_view(), name="password_reset"),
+    # path("reset_password_sent/", auth_views.PasswordResetDoneView.as_view(), name="password_reset_done"),
+    # path("reset/<uidb64>/<token>/", auth_views.PasswordResetConfirmView.as_view(), name="password_reset_confirm"),
+    # path("reset_password_complete/", auth_views.PasswordResetCompleteView.as_view(), name="password_reset_complete"),
+    path('password-reset/', ResetPasswordView.as_view(), name='password_reset'),
 
 
 
@@ -38,6 +48,7 @@ urlpatterns =[
 
     #Trainer_approval
     path("trainer_approval/",Trainer_approval_function,name="Trainer-approval"),
+    # path("get_excel_data/",get_excel_data,name="get-data"),
     
     # add student 
    
@@ -46,6 +57,7 @@ urlpatterns =[
 
     # CRUD FOR ASANA CREATION 
     path('update_asana/<int:asana_id>/', CreateAsanaView.as_view(), name='update_asana'),
+    # path('delete_asana/<int:asana_id>/',CreateAsanaView.as_view(),name='delete_asana'),
     # path('delete_asana/<int:asana_id>/', create_asana, name='delete_asana'),
 
 
@@ -74,11 +86,11 @@ urlpatterns =[
    
 
     #subscription page 
-    path('subscription_plans/',subscription_plans,name='subscription-plans'),
+    # path('subscription_plans/',subscription_plans,name='subscription-plans'),
 
     #payment page 
-    path('payment/',subscription_payment,name='subscription-payment'),
-    path("razorpay/callback/", callback, name="callback"),
+    # path('payment/',subscription_payment,name='subscription-payment'),
+    # path("razorpay/callback/", callback, name="callback"),
   
 ]
 

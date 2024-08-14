@@ -1,15 +1,126 @@
+{% extends 'users/staff_dashboard.html' %}
 
 {% load static %}
 
-<h1>sufgggggggggggggggggg</h1>
-<div id="form-container">
+
+{% block body %}
     
-    <form id="update_course_map_form" method="post" action="{% url 'student-mapp-courses' %}">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <input type="hidden" name="enrollment_id" value="{{ enrollment_id }}">
-        <button type="submit" name="update_course_map_form">Update Course</button>
-    </form>
-</div>
+    <title>Update Course Mapping</title>
+    <style>
+        /* Container Styling */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        /* Heading Style */
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 1.75rem;
+            font-weight: 500;
+        }
+
+        /* Card Styling */
+        .card {
+            background-color: #f8f9fa;
+            border-radius: 0.25rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            padding: 1rem;
+        }
+
+        /* Form Group Styling */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        /* Form Elements Styling */
+        textarea,
+        input[type="text"],
+        input[type="number"],
+        select {
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            padding: 0.75rem;
+            font-size: 1rem;
+            line-height: 1.5;
+            width: 100%;
+            box-sizing: border-box; /* Ensures padding and border are included in element's total width and height */
+        }
+
+        /* Button Styling */
+        .btn {
+            display: inline-block;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            border-radius: 0.2rem;
+            cursor: pointer;
+            text-align: center;
+            border: none;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            border-radius: 0.2rem;
+        }
+
+        /* Margin between the buttons */
+        .ml-2 {
+            margin-left: 0.5rem;
+        }
+
+        /* Make description box more attractive */
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Update Course for Student</h1>
+        <div class="card">
+            <form id="update_course_map_form" method="post" action="{% url 'student-mapp-courses' %}">
+                {% csrf_token %}
+                
+                <!-- Form Fields -->
+                <div class="form-group">
+                    {{ form.as_p }}
+                </div>
+
+                <!-- Hidden Enrollment ID Field -->
+                <input type="hidden" name="enrollment_id" value="{{ enrollment_id }}">
+
+                <!-- Buttons at the bottom, aligned to the right -->
+                <div class="d-flex justify-content-between">
+                    <button type="submit" name="update_course_map_form" class="btn btn-primary btn-sm" onclick="this.disabled=true;submit_form()">Update Course</button>
+                    <a href="{% url 'student-mapp-courses' %}" class="btn btn-secondary btn-sm ml-2">Back to Courses</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function submit_form() {
+            document.getElementById('update_course_map_form').submit();
+        }
+    </script>
+</body>
 
 
+{% endblock %}

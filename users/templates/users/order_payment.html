@@ -2,8 +2,9 @@
 {% block content %}
 {% for subscription in subscription %}
 <div class="col-6 mx-auto" style="margin-top:10%;">
-    <form action="{% url 'subscription-payment' %}" method='POST'>
+    <form id="payment_form" action="{% url 'subscription-payment' %}" method='POST'>
         {% csrf_token %}
+        {% idempotent_token %}
         <div class="mb-3">
           <label for="exampleInputEmail1" class="form-label">{{subscription.name}}</label>
           <input type="name" name="name" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp">
@@ -13,9 +14,16 @@
           <input type="number" name="amount" class="form-control" id="exampleInputPassword1">
         </div>
         <div>
-        <button type="submit" class="btn btn-primary">Pay Now</button>
+        <button type="submit" class="btn btn-primary" onclick="this.disabled=true;submit_form()">Pay Now</button>
         </div>
       </form>
 </div>
 {% endfor %}
+<script>
+  function submit_form() {
+  $("#payment_form").submit();
+
+}
+
+</script>
 {% endblock %}

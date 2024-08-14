@@ -13,6 +13,7 @@
 <div class="container">
     <form method="post" action="">
         {% csrf_token %}
+      
         {{form|crispy}}
         <input class="btn btn-primary" type="submit" name="meta_details" value="Submit">
     </form>

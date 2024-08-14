@@ -1,9 +1,23 @@
 from decimal import Decimal
 import json
+import os
+import time
+from .tasks import *
+from django.core.files.base import ContentFile
+from django.core.files.storage import FileSystemStorage
+from django.urls import reverse_lazy
+from django.contrib.auth.views import PasswordResetView
+from django.contrib.messages.views import SuccessMessageMixin
+from django.core.exceptions import *
 from django.contrib.auth import authenticate, login as auth_login
+from django.contrib.auth import  logout
 from sentry_sdk import capture_exception
 from django.views import View
 # from bulkmodel.models import BulkModel
+
+from django.db import transaction
+from django.utils.decorators import method_decorator
+
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Avg
@@ -26,23 +40,26 @@ from django.contrib.auth.models import User, Group
 from import_export.formats.base_formats import XLSX
 from tablib import Dataset
 import ast
-from django.db import transaction
+from django.db import IntegrityError, transaction
 import razorpay
 import pandas as pd
 import base64
 from django.shortcuts import render
 from openpyxl import load_workbook
-
+import sweetify
 from django.dispatch import receiver
 from .models import Activity
 from .utils import  calculate_asana_overall_accuracy, calculate_user_overall_accuracy
 from django.views.decorators.http import require_http_methods
 
 
-
+# for all the views need to handle permission denied ,viewsDoesNotExist,FieldError,ValidationError
 
 def register(request):
+    
+
     if request.method == "POST":
+
         email = request.POST.get("email")
         first_name = request.POST.get("first_name")
         last_name = request.POST.get("last_name")
@@ -61,10 +78,12 @@ def register(request):
 def profile_view(request):
     return render(request,'users/profile.html',{'user': request.user})
 
-
 @login_required
 @user_passes_test(check_client)
 def subscription_payment(request):
+    
+        
+
     if request.method == "POST":
         name = request.POST.get("name")
         subscription_id = request.POST.get("subscription_id")
@@ -105,6 +124,7 @@ def subscription_payment(request):
                 "callback_url": "http://" + "127.0.0.1:8000" + "/razorpay/callback/",
                 "razorpay_key": settings.RAZORPAY_KEY_ID,
                 "order": order,
+                # 'idempo_token': idempo.token,
             },
         )
     return render(request, "users/subscription_plans.html")
@@ -114,6 +134,7 @@ def subscription_payment(request):
 
 @csrf_exempt
 def callback(request):
+
     def verify_signature(response_data):
         client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
         try:
@@ -134,7 +155,8 @@ def callback(request):
             order.status = 'ACCEPT'
             order.save()
             context={
-                'order':order
+                'order':order,
+                # 'idempo_token': idempo.token,
             }
             
             print("SUCCESS")
@@ -143,7 +165,7 @@ def callback(request):
             order.status = 'REJECT'
             order.save()
             print("FAILURE: Signature verification failed.")
-            return render(request, "users/failed.html", context={'order':order})
+            return render(request, "users/success.html", context={'order':order})
     else:
         try:
             payment_id = json.loads(request.POST.get("error[metadata]")).get("payment_id")
@@ -160,7 +182,7 @@ def callback(request):
         print("FAILURE: Error in payment process.")
         return render(request, "users/callback.html", context={"status": order.status})
 
-
+# integrity error need to handle in this view - username must be unique
 
 
 @login_required
@@ -170,154 +192,82 @@ def Trainer_approval_function(request):
         if request.method == 'POST':
             admin_user = request.user
             order_transaction = Order.objects.filter(name=admin_user, status='ACCEPT').first()
-            
+
             if not order_transaction:
-                print("No transaction found")
+                sweetify.warning(request, "No transaction found", button="OK")
                 return render(request, 'users/Trainer_approval_Page.html')
 
             subscription = order_transaction.subscription
             no_of_persons_onboard_by_client = subscription.no_of_persons_onboard
+            print(no_of_persons_onboard_by_client,"kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk")
 
-            new_persons = request.FILES.get('excel_file')
-            df = pd.read_excel(new_persons, nrows=no_of_persons_onboard_by_client, engine='openpyxl')
+            # Handle file upload
+            uploaded_file = request.FILES.get('excel_file')
+            if uploaded_file:
+                admin_user_id=admin_user.id
+                print(admin_user_id,"ppppppppppppppppppppppppppppppppppppppp")
+                # Save the uploaded file temporarily
+                file_path = default_storage.save(f'temp/{uploaded_file.name}', ContentFile(uploaded_file.read()))
+                print(file_path,"ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo")
+                
+                # Pass file path and admin user ID to the Celery task
+                process_excel_file.delay(file_path, admin_user_id, no_of_persons_onboard_by_client)
+                print(process_excel_file,"lollllllllllllllll")
 
-            success_count = 0
-            error_count = 0
-            user_objs = []
-            role_dict = {}
+                sweetify.success(request, "Users are being onboarded, you'll be notified once done.", button="OK")
+                print("success")
+            else:
+                sweetify.error(request, "No file uploaded!", button="OK")
 
-            with transaction.atomic():
-                for i, row in df.iterrows():
-                    username = row['username']
-                    email = row['email']
-                    first_name = row['first_name']
-                    last_name = row['last_name']
-                    password = row['password']
-                    role = row['roles'].lower()
-
-                    user = User(
-                        username=username,
-                        email=email,
-                        first_name=first_name,
-                        last_name=last_name,
-                    )
-                    user.set_password(password)
-                    user_objs.append(user)
-                    role_dict[username] = role
-
-                User.objects.bulk_create(user_objs)
-
-                for user in user_objs:
-                    role = role_dict[user.username]
-                    group, created = Group.objects.get_or_create(name=role.capitalize())
-                    user.groups.add(group)
-                    print(f"Added {user.username} to group {group.name}")
-
-                    if role == 'trainer':
-                        TrainerLogDetail.objects.create(
-                            trainer_name=user,
-                            onboarded_by=admin_user,
-                            no_of_asanas_created=0,
-                            created_at=timezone.now(),
-                            updated_at=timezone.now()
-                        )
-                    else:
-                        StudentLogDetail.objects.create(
-                            student_name=user,
-                            added_by=admin_user,
-                            created_at=timezone.now(),
-                            updated_at=timezone.now()
-                        )
-                    success_count += 1
-
-            # messages.success(request, f'Successfully created {success_count} users.')
             return render(request, 'users/Trainer_approval_Page.html')
+
         else:
             return render(request, 'users/Trainer_approval_Page.html')
 
     except Exception as e:
         print(e)
-        #       messages.error(request, 'An error occurred while processing the file.')
         capture_exception(e)
         return render(request, 'users/staff_dashboard.html')
     
-       
-       
-                
-# @login_required
-# @user_passes_test(check_client)
-# def student_mapped_to_courses(request):
-#     print("hello")
-#     admin_user=request.user
-#     print(admin_user)
-#     if admin_user:
-#        order_transaction = Order.objects.filter(name=admin_user,status='ACCEPT').first()
-#        print(order_transaction)
-#        if not order_transaction:
-#             print("trainaction not found")
-#             # sweeetify alert
-#             return render(request,'users/Trainer_approval_Page.html')
+# def get_excel_data(request,user_objs,admin_user,role_dict):
+#     get_user_objs=process_excel_file(user_objs)
+#     get_admin_user=Trainer_approval_function(admin_user)
+#     success_count = 0
+#     error_count = 0
+#     user_objs = []
+#     role_dict = {}
+#     for user in get_user_objs:
+#             role = role_dict[user.username]
+#             group, created = Group.objects.get_or_create(name=role.capitalize())
+#             user.groups.add(group)
+#             print(f"Added {user.username} to group {group.name}")
 
-#     if request.method == 'POST':
-        
-#         form = StudentCourseMappingForm(request.POST,user=request.user)
-    
-#         if form.is_valid():
-#             student_user = form.cleaned_data['user']
-#             print(student_user)
-#             courses_to_be_mapped = form.cleaned_data['students_added_to_courses']
-
-#             enrollment_student = User.objects.filter(username=student_user)
-#             enrollment= EnrollmentDetails.objects.filter(user__in=enrollment_student)
-                
-#             print("successfully saved ")
-#             enrollment.students_added_to_courses.set(courses_to_be_mapped)
-
-           
-            
-#             # Save the EnrollmentDetails object
-#             enrollment.save()
-            
-
-          
-#             # messages.success(request, "Courses mapped to student successfully")
-#             return render(request,'users/trainer_dashboard.html',{
-#                  'form': form,
-              
-            
-#         }) 
+#             if role == 'trainer':
+#                         TrainerLogDetail.objects.create(
+#                             trainer_name=user,
+#                             onboarded_by=get_admin_user,
+#                             no_of_asanas_created=0,
+#                             created_at=timezone.now(),
+#                             updated_at=timezone.now()
+#                         )
+#             else:
+#                         StudentLogDetail.objects.create(
+#                             student_name=user,
+#                             added_by=get_admin_user,
+#                             created_at=timezone.now(),
+#                             updated_at=timezone.now()
+#                         )
+#                         success_count += 1
+#             print(success_count,"lllllllllllllllllllllllllllllllll")
+#             sweetify.success(request,"Users onboarded Successfully",button="OK")
+#             return render(request, 'users/Trainer_approval_Page.html')
   
 
-
-            
-            
-           
-            
-            
-#     else:
-#         form = StudentCourseMappingForm(user=request.user)
-    
-#     return render(request, 'users/student_mapping.html',{'form':form})
-    
-
-
-
-    
-
-
-
-
-
-    
-
-                
-            
-
-
-  
-
-
+# @idempotent_view
 def user_login(request):
+    time.sleep(2)
+
+
     if request.user.is_authenticated:
         for group in request.user.groups.all():
             if group.name == 'Client':
@@ -325,7 +275,8 @@ def user_login(request):
             elif group.name == 'Trainer':
                 return render(request, 'users/view_trained.html')
             else:
-                return redirect("staff_dashboard")
+                return render(request, "users/staff_dashboard.html")
+        return redirect("home")
 
     if request.method == "POST":
         email = request.POST.get("email")
@@ -344,18 +295,46 @@ def user_login(request):
                         return redirect("staff_dashboard")
                 return redirect("home")
             else:
-                # If authentication fails, render login page with an error message
-                return render(request, "users/login.html", {"error": "Invalid credentials"})
+                return render(request, "users/login.html", {
+                    # 'idempo_token': idempo.token
+                })
         except User.DoesNotExist as e:
             capture_exception(e)
-            # If user does not exist, render login page with an error message
-            return render(request, "users/login.html", {"error": "User does not exist"})
-    
-    # Handle GET request
-    return render(request, "users/login.html")
+            sweetify.warning(request,"User not found",button="OK")
+            return render(request, "users/login.html", {
+                # 'idempo_token': idempo.token
+            })
+
+    else:
+        return render(request, "users/login.html", {
+            # 'idempo_token': idempo.token
+        })
+
+
+
+
+class ResetPasswordView(SuccessMessageMixin, PasswordResetView):
+    template_name = 'users/password_reset.html'
+    email_template_name = 'users/password_reset_email.html'
+    subject_template_name = 'users/password_reset_subject'
+    success_message = "We've emailed you instructions for setting your password, " \
+                      "if an account exists with the email you entered. You should receive them shortly." \
+                      " If you don't receive an email, " \
+                      "please make sure you've entered the address you registered with, and check your spam folder."
+    success_url = reverse_lazy('home')
+
+@login_required(login_url='login')
+def log_out(request):
+    try:
+        auth.logout(request)
+        sweetify.success(request,"User logged out successfully",button="OK")
+    except Exception as e:
+        messages.error(request, 'An error occurred while authentication.')
+        print(e)
+        return redirect("home")
+    return redirect("login")
 
 @login_required
-
 @user_passes_test(check_trainer or check_client)
 def view_trained(request):
     trained_asanas = Asana.objects.filter(created_by = request.user)
@@ -363,12 +342,15 @@ def view_trained(request):
     return render(request,"users/view_trained.html",{
         "trained_asanas":trained_asanas,
         'is_trainer': True,
+        
 
     })
 
 
-@login_required
 
+
+
+@login_required
 @user_passes_test(check_trainer  or  check_student)
 def view_posture(request,asana_id):
     postures = Posture.objects.filter(asana=Asana.objects.get(id=asana_id)).order_by('step_no')
@@ -380,9 +362,14 @@ def view_posture(request,asana_id):
     })
 
 
-class CreateAsanaView(LoginRequiredMixin, UserPassesTestMixin, View):
+class CreateAsanaView( UserPassesTestMixin, View):
+
+    # time.sleep(5)
+    print("hello")
     def test_func(self):
         return check_trainer(self.request.user) 
+
+
 
     def get_max_forms(self,request):
         trainee_name=self.request.user
@@ -412,6 +399,7 @@ class CreateAsanaView(LoginRequiredMixin, UserPassesTestMixin, View):
         return max_forms, no_of_asanas_created_by_trainee
 
     def get(self, request, *args, **kwargs):
+        
         max_forms, no_of_asanas_created_by_trainee = self.get_max_forms(request.user)
         print(max_forms)
         
@@ -422,19 +410,24 @@ class CreateAsanaView(LoginRequiredMixin, UserPassesTestMixin, View):
             print(asana_id)
             asana = Asana.objects.get(id=asana_id)
             form = AsanaCreationForm(instance=asana)
+            sweetify.success(request,"Choose type of PO",button="OK")
             return render(request, "users/update_asana.html", {
                 'form': form,
                 'asana_id': asana_id,
                 'is_trainer': True,
             })
+            
         else:
             formset = AsanaCreationFormSet()
             return render(request, "users/create_asana.html", {
                 'formset': formset,
                 'is_trainer': True,
+                'enable':True,
             })
 
+     
     def post(self, request, *args, **kwargs):
+        time.sleep(5)
         max_forms, no_of_asanas_created_by_trainee = self.get_max_forms(request.user)
         AsanaCreationFormSet = formset_factory(AsanaCreationForm, extra=1, max_num=max_forms, validate_max=True, absolute_max=max_forms)
         created_asanas_by_trainer = TrainerLogDetail.objects.get(trainer_name=request.user)
@@ -456,22 +449,27 @@ class CreateAsanaView(LoginRequiredMixin, UserPassesTestMixin, View):
 
         elif 'delete_asana' in request.POST:
             asana_id = request.POST.get('asana_id')
-            asana = Asana.objects.get(id=asana_id)
-            asana.delete()
+            asana =get_object_or_404(Asana,id=asana_id)
+            
             created_asanas_by_trainer.no_of_asanas_created -= 1
             created_asanas_by_trainer.save()
+            asana.delete()
             return redirect("view-trained")
 
         else:
+            
             formset = AsanaCreationFormSet(request.POST)
             if formset.is_valid():
-                for form in formset:
+                  print("entered          llllllllllll")
+                  for form in formset:
+                    print("888888888888888")
                     if remaining_forms > 0:
                         
                         asana = form.save(commit=False)
                         asana.created_by = request.user
                         asana.created_at = timezone.now()
                         asana.last_modified_at = timezone.now()
+                        print("asssssssssssssssssssssssssss ")
                         asana.save()
 
                         created_asanas_by_trainer.no_of_asanas_created += 1
@@ -488,27 +486,34 @@ class CreateAsanaView(LoginRequiredMixin, UserPassesTestMixin, View):
 
                         no_of_asanas_created_by_trainee += 1
                         remaining_forms -= 1
-                return redirect("view-trained")
+                        print(remaining_forms,"lllllllllllllllllllllllllllllllllllllllllllll")
+                    return redirect("view-trained")
             else:
+
+
                 return render(request, "users/create_asana.html", {
                     'formset': formset,
                     'is_trainer': True,
                 })
-   
+
+
+    
 
 
 class CourseCreationView(LoginRequiredMixin, UserPassesTestMixin, View):
+    # idempo_redirect = 'view-trained'  # Where to redirect if a duplicate POST request is detected
+
     def test_func(self):
         return check_trainer(self.request.user)
+
+
 
     def get(self, request, *args, **kwargs):
         current_user = self.request.user
         course_id = request.GET.get('course_id')
         if course_id:
             course = get_object_or_404(CourseDetails, id=course_id)
-           
-            
-            form = CourseCreationForm(instance=course,user=self.request.user)
+            form = CourseCreationForm(instance=course, user=self.request.user)
             return render(request, "users/update_course.html", {
                 'form': form,
                 'course_id': course_id,
@@ -516,22 +521,20 @@ class CourseCreationView(LoginRequiredMixin, UserPassesTestMixin, View):
             })
         else:
             form = CourseCreationForm(user=self.request.user)
-            courses=CourseDetails.objects.filter(user=current_user)
-
+            courses = CourseDetails.objects.filter(user=current_user)
             return render(request, "users/trainer_dashboard.html", {
                 'form': form,
                 'is_trainer': True,
-                'courses':courses,
+                'courses': courses,
             })
 
     def post(self, request, *args, **kwargs):
+        time.sleep(5)
         course_id = request.POST.get('course_id')
-        current_user=self.request.user
+        current_user = self.request.user
         if 'update_course' in request.POST:
             course = get_object_or_404(CourseDetails, id=course_id)
-            print(course)
-            form = CourseCreationForm(request.POST, instance=course,user=self.request.user)
-            print(form)
+            form = CourseCreationForm(request.POST, instance=course, user=self.request.user)
             if form.is_valid():
                 form.save() 
                 # form.save_m2m()  # Save many-to-many data
@@ -549,7 +552,7 @@ class CourseCreationView(LoginRequiredMixin, UserPassesTestMixin, View):
             return redirect('view-trained')
 
         else:
-            form = CourseCreationForm(request.POST,user=self.request.user)
+            form = CourseCreationForm(request.POST, user=self.request.user)
             if form.is_valid():
                 course = form.save(commit=False)
                 course.user = request.user
@@ -557,21 +560,21 @@ class CourseCreationView(LoginRequiredMixin, UserPassesTestMixin, View):
                 course.updated_at = timezone.now()
                 course.save()  # Save the instance to the database
                 form.save_m2m()  # Save many-to-many data
-                return redirect('view-trained')
+
+                return render(request,'users/trainer_dashboard.html')
             else:
-                return render(request, "users/create_course.html", {
+                return render(request, "users/trainer_dashboard.html", {
                     'form': form,
                     'is_trainer': True,
                 })
 
 
 
-
-
 @login_required
 # @user_passes_test(check_student)
 def home(request):
-    return render(request,"users/home.html")
+    subscriptions = Subscription.objects.all()
+    return render(request,"users/home.html",{'subscriptions':subscriptions})
 
 @login_required
 @user_passes_test(check_student)
@@ -592,6 +595,7 @@ def staff_dashboard_function(request):
 @login_required
 @user_passes_test(check_trainer)
 def edit_posture(request,posture_id):
+  
     posture = Posture.objects.get(id=posture_id)
     if request.method == "POST":
         if "meta_details" in request.POST:
@@ -618,6 +622,7 @@ def edit_posture(request,posture_id):
         "form":form,
         "posture":posture,
         'is_trainer': True,
+       
         
     })
 
@@ -630,6 +635,7 @@ def edit_posture(request,posture_id):
 class  StudentCourseMapView(LoginRequiredMixin, UserPassesTestMixin, View):
     def test_func(self):
         return check_trainer(self.request.user)
+   
     def get_enrollment_details(self,user):
         trainer_details=TrainerLogDetail.objects.filter(trainer_name=self.request.user).first()
         if trainer_details:
@@ -638,8 +644,8 @@ class  StudentCourseMapView(LoginRequiredMixin, UserPassesTestMixin, View):
             enrolled_studs = list(StudentLogDetail.objects.filter(added_by=client_name))
             print(enrolled_studs,"line 621")
             if enrolled_studs:
-
-
+# here i need to add empty result set exceptions 
+                
                  student_name = []
                  for student in enrolled_studs:
                            student_name.append(student.student_name)
@@ -666,47 +672,14 @@ class  StudentCourseMapView(LoginRequiredMixin, UserPassesTestMixin, View):
         enrollment_id = request.GET.get('enrollment_id')
         
         print(enrollment_id,"kopopokjodjskja")
-        #here i need to get the trainer details 
-        # trainer_details=TrainerLogDetail.objects.filter(trainer_name=current_user).first()
-        # if trainer_details:
-        #     client_name=trainer_details.onboarded_by
-        #     print(client_name,"loll")
+
 
         print(f"GET request received with enrollment_id: {enrollment_id}")
 
 
-            
- 
-       
-        # enrolled_studs = list(StudentLogDetail.objects.filter(added_by=client_name))
-        # print(enrolled_studs,"line 621")
-        # if enrolled_studs:
-
-
-        #      student_name = []
-        #      for student in enrolled_studs:
-        #          student_name.append(student.student_name)
-
-        #      print(type(student_name),student_name, "line 45465768")
-        #      students = User.objects.filter(username__in=student_name)
-        #      print(students,"lopppppppppppppghrdhj")
-        #     #  for student in students:
-
-        #     #     c=student.username
-        #     #     print(student,"ifsihfiueahrkuhrkjh")
-        
-        #      enrollment_details=EnrollmentDetails.objects.filter(user__in=students)
-        #      print(enrollment_details,"sdfhdsjbfjhdbsfjh")
-        
-        # else:
-        #     print("No students found")
-
-
-        
-
         
         print("oooooooooooooooooooooooooooooooooooooooo")
-        # print(enrollment_id,"llllllllllllllllllll")
+       
         if  enrollment_id:
             try:
                  print("yet to update ","idsfsei")
@@ -744,34 +717,19 @@ class  StudentCourseMapView(LoginRequiredMixin, UserPassesTestMixin, View):
             })
    
     def post(self, request, *args, **kwargs):
+        time.sleep(5)
         print("hello world ")
         enrollment_id = request.POST.get('enrollment_id')
         enrollment_details=self.get_enrollment_details(request.user)
         print(enrollment_id,"opppppppppppppppppppp")
         current_user = self.request.user
         print(current_user,"ooooooooooooooo")
-        # enrolled_studs = list(StudentLogDetail.objects.filter(added_by=self.request.user))
-        # if enrolled_studs:
 
-
-        #      student_name = []
-        #      for student in enrolled_studs:
-        #          student_name.append(student.student_name)
-
-        #      print(type(student_name),student_name, "line 45465768")
-        #      students = User.objects.filter(username__in=student_name)
-            
-        
-        #      enrollment_details=EnrollmentDetails.objects.filter(user__in=students)
-        #      print(enrollment_details,"sdfhdsjbfjhdbsfjh")
-            
-        
-        # else:
-        #     print("No students found")
 
        
         print("lollllllllllllllllllllllllll")
         if 'update_course_map_form' in request.POST:
+            
             
             try:
                 print("enterde to edit ")
@@ -807,7 +765,7 @@ class  StudentCourseMapView(LoginRequiredMixin, UserPassesTestMixin, View):
             enrollment = get_object_or_404(EnrollmentDetails, id=enrollment_id)
             enrollment.delete()
             print(f"GET request received with enrollment_id: {enrollment_id}")
-            return render(request,'users/Trainer_approval_Page.html')
+            return render(request,'users/trainer_dashboard.html')
 
             
           except EnrollmentDetails.DoesNotExist as e:
@@ -828,7 +786,7 @@ class  StudentCourseMapView(LoginRequiredMixin, UserPassesTestMixin, View):
                 enrollment.updated_at = timezone.now()
                 enrollment.save()   
                 form.save_m2m()
-                return render(request, "users/Trainer_approval_Page.html", {
+                return render(request, "users/trainer_dashboard.html", {
                     'form': form,
                      'enrollment_details': enrollment_details,
                      'enrollment_id': enrollment_id,
@@ -839,13 +797,11 @@ class  StudentCourseMapView(LoginRequiredMixin, UserPassesTestMixin, View):
                 print(f"GET request received with enrollment_id: {enrollment_id}")
 
                 print(enrollment_details,'line 211')
-                return render(request, "users/student_mapping.html", {
+                return render(request, "users/trainer_dashboard.html", {
                     'form': form,
                     # 'enrollment_details': enrollment_details,
                      'enrollment_id': enrollment_id,
                 })
-
-
 
 
 
@@ -912,7 +868,6 @@ def user_view_posture(request,asana_id):
 
 
 
-
 @login_required
 @user_passes_test(check_student)
 def get_posture(request,posture_id):
@@ -943,14 +898,13 @@ def get_posture_dataset(request):
         return JsonResponse(status=400,data={"error":"Bad request"})
     
 
-@login_required
-@user_passes_test(check_client)
-def subscription_plans(request):
-    subscriptions= Subscription.objects.all()
-    return render(request,'users/subscription_plans.html',{'subscriptions':subscriptions}) 
+# @login_required
+# @user_passes_test(check_client)
+# def subscription_plans(request):
+#     subscriptions= Subscription.objects.all()
+#     return render(request,'users/subscription_plans.html',{'subscriptions':subscriptions}) 
 
-           
-  
+
 @login_required
 def dashboard(request):
     user = request.user
@@ -1005,6 +959,20 @@ def dashboard(request):
     else:
         return render(request, 'users/activity_log_users.html', context)
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

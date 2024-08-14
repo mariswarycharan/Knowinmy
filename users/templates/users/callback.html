@@ -2,6 +2,7 @@
 {% block content %}
 <form method="POST">
     {% csrf_token %}
+   
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
     var options = {

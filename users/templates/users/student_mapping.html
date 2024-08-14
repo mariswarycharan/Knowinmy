@@ -3,75 +3,99 @@
 
 {% block body %}
 <div class="container mt-5">
-    <h2 class="text-center">
-        {% if form.instance.id %}
-            Update Enrollment
-        {% else %}
-            Create Enrollment
-        {% endif %}
-    </h2>
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <form method="POST">
-                {% csrf_token %}
-                {{ form.as_p }}
-                <button type="submit" name="create_course_map_form" class="btn btn-primary">
-                    Create Enrollment
-                </button>
-            </form>
-            {% if form.instance.id %}
-            <form method="POST" action="{% url 'student-mapp-courses' %}" style="display:inline;">
-                {% csrf_token %}
-                <input type="hidden" name="enrollment_id" value="{{ form.instance.id }}">
-                <button type="submit" name="delete_course_map_form" class="btn btn-danger">Delete Course</button>
-            </form>
-            {% endif %}
-        </div>
+    <!-- Buttons at the top -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <!-- Create/Update Enrollment Button aligned left -->
+        <button class="btn btn-success" data-toggle="modal" data-target="#enrollmentModal">
+            {% if form.instance.id %}Update Enrollment{% else %}Create Enrollment{% endif %}
+        </button>
     </div>
-</div>
-<div class="container mt-5">
-    <h2 class="text-center">Enrollment Details</h2>
+
+    <!-- Heading -->
+    <h2 class="text-center mb-4">Enrollment Details</h2>
+    
+    <!-- Enrollment Details Section -->
     <div class="row">
         {% for enrollment in enrollment_details %}
-        <div class="col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="font-weight-bold text-primary mb-1">
-                                {{ enrollment.user.username }}
-                            </div>
-                            <div class="mb-0 font-weight-bold text-gray-800">
-                                Enrolled Courses:
-                                <ul>
-                                    {% for course in enrollment.students_added_to_courses.all %}
-                                    <li>{{ course.course_name }}</li>
-                                    {% empty %}
-                                    <li>No courses enrolled.</li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                            <div class="text-gray-800">
-                                Created at: {{ enrollment.created_at }}
-                            </div>
-                            <div class="text-gray-800">
-                                Last modified at: {{ enrollment.updated_at }}
-                            </div>
-                            <a href="{% url 'student-mapp-courses' %}?enrollment_id={{ enrollment.id }}"name='update_course_map_form' class="btn btn-sm btn-primary">Edit</a>
-                            <form method="POST" action="{% url 'student-mapp-courses' %}" style="display:inline;">
-                                {% csrf_token %}
-
-                                <input type="hidden" name="enrollment_id" value="{{ enrollment.id }}">
-                                <button type="submit" name="delete_course_map_form" class="btn btn-danger btn-sm">Delete</button>
-                            </form>
-                        </div>
-                    </div>
+                    <h5 class="card-title font-weight-bold text-primary">
+                        {{ enrollment.user.username }}
+                    </h5>
+                    <p class="card-text text-muted">
+                        Enrolled Courses:
+                        <ul>
+                            {% for course in enrollment.students_added_to_courses.all %}
+                            <li>{{ course.course_name }}</li>
+                            {% empty %}
+                            <li>No courses enrolled.</li>
+                            {% endfor %}
+                        </ul>
+                    </p>
+                    <p class="card-text text-muted">
+                        Created at: {{ enrollment.created_at }}
+                    </p>
+                    <p class="card-text text-muted">
+                        Last modified at: {{ enrollment.updated_at }}
+                    </p>
+                    <a href="{% url 'student-mapp-courses' %}?enrollment_id={{ enrollment.id }}" class="btn btn-info btn-sm">Edit</a>
+                    <form method="POST" action="{% url 'student-mapp-courses' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="enrollment_id" value="{{ enrollment.id }}">
+                        <button type="submit" id="delete-button-{{ enrollment.id }}" onclick="del_enrollment('{{ enrollment.id }}')" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
                 </div>
             </div>
         </div>
         {% empty %}
-        <p>No enrollment details available.</p>
+        <div class="col-12">
+            <p>No enrollment details available.</p>
+        </div>
         {% endfor %}
     </div>
 </div>
+
+<!-- Modal for Enrollment Creation/Update -->
+<div class="modal fade" id="enrollmentModal" tabindex="-1" role="dialog" aria-labelledby="enrollmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="enrollmentModalLabel">
+                    {% if form.instance.id %}Update Enrollment{% else %}Create Enrollment{% endif %}
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="enrollment_form" method="POST">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-primary" onclick="this.disabled=true;submit_form()">
+                        {% if form.instance.id %}Update Enrollment{% else %}Create Enrollment{% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function submit_form() {
+        $("#enrollment_form").submit();
+    }
+
+    function del_enrollment(enrollment_id) {
+        var deleteButton = document.getElementById('delete-button-' + enrollment_id);
+        if (deleteButton) {
+            deleteButton.addEventListener('click', function(e) {
+                deleteButton.disabled = true;
+                e.preventDefault();
+            }, { once: true });
+        } else {
+            console.error('Delete button not found!');
+        }
+    }
+</script>
 {% endblock %}
