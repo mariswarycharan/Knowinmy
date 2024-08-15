@@ -2,6 +2,10 @@ from decimal import Decimal
 import json
 import os
 import time
+from django.contrib.auth import authenticate, update_session_auth_hash
+from django.http import HttpResponseRedirect
+from .forms import ResetForm
+from django.contrib.auth.hashers import make_password
 from .tasks import *
 from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage
@@ -311,17 +315,39 @@ def user_login(request):
         })
 
 
+def change_password(request):
+    if request.method == 'POST':
+        form = ResetForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            oldpassword = form.cleaned_data['oldpassword']
+            newpassword = form.cleaned_data['newpassword1']
 
+            try:
+                user = User.objects.get(username=username)
+                
+                # Check if the old password is correct
+                if user.check_password(oldpassword):
+                    user.set_password(newpassword)
+                    user.save()
+                    
+                    # Important: Update the session with the new password
+                    update_session_auth_hash(request, user)
+                    
+                    # Redirect to a success page
+                    return render(request, 'users/reset_success.html')
 
-class ResetPasswordView(SuccessMessageMixin, PasswordResetView):
-    template_name = 'users/password_reset.html'
-    email_template_name = 'users/password_reset_email.html'
-    subject_template_name = 'users/password_reset_subject'
-    success_message = "We've emailed you instructions for setting your password, " \
-                      "if an account exists with the email you entered. You should receive them shortly." \
-                      " If you don't receive an email, " \
-                      "please make sure you've entered the address you registered with, and check your spam folder."
-    success_url = reverse_lazy('home')
+                else:
+                    
+                    form.add_error('oldpassword', 'Old password is incorrect.')
+            except User.DoesNotExist:
+                form.add_error('username', 'This username does not exist.')
+
+        # If the form is invalid or the password check fails, re-render the form with errors
+        return render(request, 'users/reset_password.html', {'form': form})
+    else:
+        form = ResetForm()
+        return render(request, 'users/reset_password.html', {'form': form})
 
 @login_required(login_url='login')
 def log_out(request):

@@ -94,3 +94,29 @@ class CourseCreationForm(forms.ModelForm):
 
 
 
+class ResetForm(forms.Form):
+    username = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'placeholder': 'Username'}))
+    oldpassword=forms.CharField(max_length=20,widget=forms.PasswordInput(attrs={'palceholder':'Your old password','class':'span'}))
+    newpassword1=forms.CharField(max_length=20,widget=forms.PasswordInput(attrs={'palceholder':'New password','class':'span'}))
+    newpassword2=forms.CharField(max_length=20,widget=forms.PasswordInput(attrs={'palceholder':'Confirm password','class':'span'}))
+    def __init__(self,*args,**kwargs):
+        self.user=kwargs.pop('user',None)
+        super().__init__(*args,**kwargs)
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if not User.objects.filter(username=username).exists():
+            raise forms.ValidationError("This username does not exist.")
+        return username
+    def clean(self):
+        cleaned_data=super().clean()
+        newpassword1 = cleaned_data.get('newpassword1')
+        newpassword2 = cleaned_data.get('newpassword2')
+
+        if newpassword1 and newpassword2:
+            if newpassword1 != newpassword2:
+                raise forms.ValidationError("The two password fields must match.")
+        
+        return cleaned_data
+
+
+

@@ -22,17 +22,9 @@ urlpatterns =[
    
     path('create_asana/', CreateAsanaView.as_view(), name='create-asana'),
     path("staff_dashboard/",staff_dashboard_function,name="staff_dashboard"),
-    # # path("reset_password/",auth_ views,PasswordResetView.as_view()),
-    # path("reset_password/", auth_views.PasswordResetView.as_view(), name="password_reset"),
-    # path("reset_password_sent/", auth_views.PasswordResetDoneView.as_view(), name="password_reset_done"),
-    # path("reset/<uidb64>/<token>/", auth_views.PasswordResetConfirmView.as_view(), name="password_reset_confirm"),
-    # path("reset_password_complete/", auth_views.PasswordResetCompleteView.as_view(), name="password_reset_complete"),
-    path('password-reset/', ResetPasswordView.as_view(), name='password_reset'),
-
-
-
     
-
+    path("reset_password/",change_password,name='reset_password_form'),
+   
     
 
     #train - trainer side
