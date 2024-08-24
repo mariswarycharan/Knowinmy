@@ -1,0 +1,10 @@
+{% if form %}
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Submit</button>
+    </form>
+{% else %}
+    <p>No form to display.</p>
+{% endif %}
+

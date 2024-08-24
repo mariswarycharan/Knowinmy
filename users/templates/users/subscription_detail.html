@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Subscription Detail</title>
+</head>
+<body>
+    <h1>Subscription Detail</h1>
+    <p><strong>Name:</strong> {{ subscription.name }}</p>
+    <p><strong>Description:</strong> {{ subscription.description }}</p>
+    <p><strong>Permitted Asanas:</strong> {{ subscription.permitted_asanas }}</p>
+    <p><strong>Number of Persons Onboard:</strong> {{ subscription.no_of_persons_onboard }}</p>
+    <p><strong>Price:</strong> {{ subscription.price }}</p>
+    <p><strong>Highlight Status:</strong> {{ subscription.highlight_status }}</p>
+    <p><strong>Created At:</strong> {{ subscription.created_at }}</p>
+    <p><strong>Updated At:</strong> {{ subscription.updated_at }}</p>
+    <a href="{% url 'order_list' %}">Back to Order List</a>
+</body>
+</html>

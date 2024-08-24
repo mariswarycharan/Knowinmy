@@ -7,7 +7,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <!-- Create/Update Enrollment Button aligned left -->
         <button class="btn btn-success" data-toggle="modal" data-target="#enrollmentModal">
-            {% if form.instance.id %}Update Enrollment{% else %}Create Enrollment{% endif %}
+          Create Enrollment
         </button>
     </div>
 
@@ -43,7 +43,7 @@
                     <form method="POST" action="{% url 'student-mapp-courses' %}" style="display:inline;">
                         {% csrf_token %}
                         <input type="hidden" name="enrollment_id" value="{{ enrollment.id }}">
-                        <button type="submit" id="delete-button-{{ enrollment.id }}" onclick="del_enrollment('{{ enrollment.id }}')" class="btn btn-danger btn-sm">Delete</button>
+                        <button type="submit" name="delete_course_map_form"id="delete-button-{{ enrollment.id }}" onclick="del_enrollment('{{ enrollment.id }}')" class="btn btn-danger btn-sm">Delete</button>
                     </form>
                 </div>
             </div>
@@ -69,10 +69,10 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form id="enrollment_form" method="POST">
+                <form id="enrollment_form" method="POST" action="{% if form.instance.id %}{% url 'student-mapp-courses' %}?enrollment_id={{ form.instance.id }}{% else %}{% url 'student-mapp-courses' %}{% endif %}">
                     {% csrf_token %}
                     {{ form.as_p }}
-                    <button type="submit" class="btn btn-primary" onclick="this.disabled=true;submit_form()">
+                    <button type="submit" class="btn btn-primary">
                         {% if form.instance.id %}Update Enrollment{% else %}Create Enrollment{% endif %}
                     </button>
                 </form>
@@ -80,6 +80,7 @@
         </div>
     </div>
 </div>
+
 
 <script>
     function submit_form() {

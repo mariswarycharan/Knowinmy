@@ -9,7 +9,8 @@
     <!-- Update Course Form -->
     <div class="card border-0 shadow-sm">
         <div class="card-body">
-            <form id="course-update-form" method="post" action="{% url 'create-course' %}">
+            <form id="course-update-form" name="update_course" method="post" action="{% url 'update_course' course_id=course_id %}">
+
                 {% csrf_token %}
                 
                 <!-- Course Name Field -->
@@ -31,10 +32,11 @@
                 </div>
 
                 <!-- Hidden Course ID Field -->
-                <input type="hidden" name="course_id" value="{{ course_id }}">
+                <!-- <input type="hidden" name="course_id" value="{{ course_id }}"> -->
 
                 <!-- Buttons at the bottom, aligned to the right -->
                 <div class="d-flex justify-content-between">
+                    <input type="hidden" name="course_id" value="{{ course_id }}">
                     <button type="submit" name="update_course" class="btn btn-primary btn-sm" onclick="this.disabled=true;submit_form()">Update Course</button>
                     <a href="{% url 'create-course' %}" class="btn btn-secondary btn-sm ml-2">Back to Courses</a>
                 </div>

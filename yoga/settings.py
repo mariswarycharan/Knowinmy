@@ -15,6 +15,8 @@ import os
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
+from sentry_sdk.integrations.celery import CeleryIntegration
+
 SETTINGS_PATH = os.path.dirname(os.path.dirname(__file__))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -47,6 +49,11 @@ INSTALLED_APPS = [
     'social_django',
     'celery',
     'django_celery_results',
+    'django_tables2',
+    'admin_interface',
+    'colorfield',
+    
+
 
 
     'users',
@@ -61,15 +68,17 @@ INSTALLED_APPS = [
 
     
 ]
-
+X_FRAME_OPTIONS = 'SAMEORIGIN'
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'users.middleware.idempotent_post_middleware',
+   
+    
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'users.middleware.TenantMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
@@ -195,7 +204,7 @@ CSRF_TRUSTED_ORIGINS = ["https://test1.knowinmy.com", "https://staging.knowinmy.
 
 #SMTP CONFIGURATION 
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.example.com'  # SMTP server host
 EMAIL_PORT = 587  # SMTP server port (587 for TLS, 465 for SSL)
 EMAIL_HOST_PORT = 25    
@@ -203,7 +212,8 @@ EMAIL_USE_TLS = True  # True for TLS, False for SSL
 
 EMAIL_HOST_USER="prabha2563@gmail.com"
 EMAIL_HOST_USER="aexw ujmc ntvv armp"
-
+EMAIL_USE_TLS= True
+EMAIL_USE_SSL=False
 
 
 
@@ -271,6 +281,18 @@ sentry_sdk.init(
     profiles_sample_rate=1.0,
 )
 
+sentry_sdk.init(
+    # same as above
+    integrations=[
+        CeleryIntegration(
+            monitor_beat_tasks=True,
+            exclude_beat_tasks=[
+                "unimportant-task",
+                "payment-check-.*"
+            ],
+        ),
+    ],
+)
 
 
 

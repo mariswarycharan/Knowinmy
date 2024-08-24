@@ -2,23 +2,26 @@
 
 {% block body %}
 <div class="container mt-5">
-    <h1 class="text-center mb-4">Upload User Data</h1>
+    <h1 class="text-center mb-4">Onboard Users</h1>
     
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <!-- File upload form -->
-            <form method="post" id="course-creation-form" enctype="multipart/form-data" action="{% url 'Trainer-approval' %}" class="p-4 border rounded shadow">
+            <!-- Onboarding users formset -->
+            <form method="post"id="onboard-user-form" action="{% url 'onboard-users-form' %}" class="p-4 border rounded shadow">
                 {% csrf_token %}
-                <div class="form-group">
-                    <label for="excel_file" class="font-weight-bold">Choose Excel File</label>
-                    <input type="file" name="excel_file" id="excel_file" class="form-control-file" required>
-                </div>
+                {{ formset.management_form }}
+                {% for form in formset %}
+                    <div class="form-group">
+                        <label class="font-weight-bold">Onboard User {{ forloop.counter }}</label>
+                        {{ form.as_p }}
+                    </div>
+                {% endfor %}
                 
-                <button type="submit" class="btn btn-primary btn-block mt-4">Upload</button>
+                <button type="submit" class="btn btn-primary btn-block mt-4">Onboard Users</button>
             </form>
 
-            <!-- Button to redirect to the onboarding page -->
-            <a href="{% url 'onboard-users-form' %}" class="btn btn-secondary btn-block mt-4">Onboard Users Manually</a>
+            <!-- Back Button -->
+            <a href="{% url 'Trainer-approval' %}" class="btn btn-secondary btn-block mt-4">Back to Trainer Approval</a>
         </div>
     </div>
 
@@ -39,10 +42,9 @@
         </div>
     {% endif %}
 </div>
-
 <script>
     function submit_form() {
-        $("#course-creation-form").submit();
+        $("#onboard-user-form").submit();
     }
 </script>
 {% endblock %}

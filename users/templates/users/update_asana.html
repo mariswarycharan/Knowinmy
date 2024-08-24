@@ -99,15 +99,17 @@
                 <!-- Form Fields -->
                 <div class="form-group">
                     {{ form.as_p }}
-                </div>
+              
 
                 <!-- Hidden Asana ID Field -->
-                <input type="hidden" name="asana_id" value="{{ asana_id }}">
-
+               
                 <!-- Buttons at the bottom, aligned to the right -->
                 <div class="d-flex justify-content-between">
-                    <button type="submit" name="update_asana" class="btn btn-primary btn-sm" onclick="this.disabled=true;submit_form()">Update Asana</button>
+                    <input type="hidden" name="asana_id" value="{{ asana_id }}">
+
+                    <button type="submit" name="update" class="btn btn-primary btn-sm" onclick="this.disabled=true;submit_form()">Update Asana</button>
                     <a href="{% url 'view-trained' %}" class="btn btn-secondary btn-sm ml-2">Back to Asanas</a>
+                </div>
                 </div>
             </form>
         </div>

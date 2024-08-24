@@ -2,6 +2,7 @@ from django.urls import path
 from .views import *
 from django.conf.urls.static import static
 from django.conf import settings
+from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import path, include
 from .views import CreateAsanaView
@@ -10,80 +11,37 @@ from django.contrib.auth import views as auth_views
 
 
 
-
-urlpatterns =[
-
-    path("",home,name="home"),
-    path('payment/',subscription_payment,name='subscription-payment'),
-    path("razorpay/callback/", callback, name="callback"),
-    path("register/",register,name="register"),
-    path("login/",user_login,name="login"),
-    path("logout/",log_out,name="logout"),
-   
-    path('create_asana/', CreateAsanaView.as_view(), name='create-asana'),
-    path("staff_dashboard/",staff_dashboard_function,name="staff_dashboard"),
-    
-    path("reset_password/",change_password,name='reset_password_form'),
-   
-    
-
-    #train - trainer side
-    path("view_trained/",view_trained,name="view-trained"),
-    path("view_posture/<int:asana_id>",view_posture,name="view-posture"),
-    path("edit_postures/<int:posture_id>",edit_posture,name="edit-posture"),
-    
-
-    #test - user side
-    path("user_view_asana/",user_view_asana,name="user-view-asana"),
-    path("user_view_posture/<int:asana_id>/",user_view_posture,name="user-view-posture"),
-    path("get_posture/<int:posture_id>",get_posture,name="get-posture"),
-
-    #Trainer_approval
-    path("trainer_approval/",Trainer_approval_function,name="Trainer-approval"),
-    # path("get_excel_data/",get_excel_data,name="get-data"),
-    
-    # add student 
-   
-    path("trainer_dashboard/",CourseCreationView.as_view(),name="create-course"),
-
-
-    # CRUD FOR ASANA CREATION 
-    path('update_asana/<int:asana_id>/', CreateAsanaView.as_view(), name='update_asana'),
-    # path('delete_asana/<int:asana_id>/',CreateAsanaView.as_view(),name='delete_asana'),
-    # path('delete_asana/<int:asana_id>/', create_asana, name='delete_asana'),
-
-
-    # crud for course creation
-    path('update_course/<int:course_id/',CourseCreationView.as_view(),name='update_course'),
-    
-   
-    #profile
-    path('profile/',profile_view,name='profile-user'),
-
-    # student mapping
-    path('student_mapping/',StudentCourseMapView.as_view(),name='student-mapp-courses'),
-    path('update_student_course/<int:enrollment_i',StudentCourseMapView.as_view(),name='student-course-update'),
-   
-
-
-    #api
-    path("get_posture_dataset/",get_posture_dataset,name="get-posture-dataset"),
-
-    # logging page 
-
-
-    # dashboard page 
-    path('dashboard/',dashboard,name='dashboard'),
-
-   
-
-    #subscription page 
-    # path('subscription_plans/',subscription_plans,name='subscription-plans'),
-
-    #payment page 
-    # path('payment/',subscription_payment,name='subscription-payment'),
-    # path("razorpay/callback/", callback, name="callback"),
-  
+urlpatterns = [
+    # Base path with slug
+    path('<slug:slug>/', home, name='home'),
+    path('<slug:slug>/register/', register, name='register'),
+    path('<slug:slug>/register-organisation/', register_organisation, name='register_organization'),
+    path('<slug:slug>/login/', user_login, name='login'),
+    path('<slug:slug>/payment/', subscription_payment, name='subscription-payment'),
+    path('<slug:slug>/razorpay/callback/', callback, name='callback'),
+    path('<slug:slug>/logout/', log_out, name='logout'),
+    path('<slug:slug>/create_asana/', CreateAsanaView.as_view(), name='create-asana'),
+    path('<slug:slug>/staff_dashboard/', staff_dashboard_function, name='staff_dashboard'),
+    path('<slug:slug>/view_trained/', view_trained, name='view-trained'),
+    path('<slug:slug>/view_posture/<int:asana_id>/', view_posture, name='view-posture'),
+    path('<slug:slug>/edit_postures/<int:posture_id>/', edit_posture, name='edit-posture'),
+    path('<slug:slug>/user_view_asana/', user_view_asana, name='user-view-asana'),
+    path('<slug:slug>/user_view_posture/<int:asana_id>/', user_view_posture, name='user-view-posture'),
+    path('<slug:slug>/get_posture/<int:posture_id>/', get_posture, name='get-posture'),
+    path('<slug:slug>/trainer_approval/', Trainer_approval_function, name='Trainer-approval'),
+    path('<slug:slug>/onboarding_users_form/', onboarding_view, name='onboard-users-form'),
+    path('<slug:slug>/client_table/', client_list, name='client-list'),
+    path('<slug:slug>/trainer_dashboard/', CourseCreationView.as_view(), name='create-course'),
+    path('<slug:slug>/update_asana/<int:asana_id>/', CreateAsanaView.as_view(), name='update_asana'),
+    path('<slug:slug>/update_course/<int:course_id>/', CourseCreationView.as_view(), name='update_course'),
+    path('<slug:slug>/profile/', profile_view, name='profile-user'),
+    path('<slug:slug>/student_mapping/', StudentCourseMapView.as_view(), name='student-mapp-courses'),
+    path('<slug:slug>/update_student_course/<int:enrollment_id>/', StudentCourseMapView.as_view(), name='student-course-update'),
+    path('<slug:slug>/clients/', client_list, name='client_list'),
+    path('<slug:slug>/clients/<int:order_id>/delete/', delete_client, name='delete_client'),
+    path('<slug:slug>/get_posture_dataset/', get_posture_dataset, name='get-posture-dataset'),
+    # Define a URL for tenant-specific data
+    # path('<slug:slug>/tenant-data/', tenant_data, name='tenant-data'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
