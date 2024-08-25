@@ -210,14 +210,14 @@ EMAIL_PORT = 587  # SMTP server port (587 for TLS, 465 for SSL)
 EMAIL_HOST_PORT = 25    
 EMAIL_USE_TLS = True  # True for TLS, False for SSL
 
-<<<<<<< HEAD
-EMAIL_HOST_USER="prabha2563@gmail.com"
-EMAIL_HOST_USER="aexw ujmc ntvv armp"
-EMAIL_USE_TLS= True
-EMAIL_USE_SSL=False
-=======
+# <<<<<<< HEAD
+# EMAIL_HOST_USER="prabha2563@gmail.com"
+# EMAIL_HOST_USER="aexw ujmc ntvv armp"
+# EMAIL_USE_TLS= True
+# # EMAIL_USE_SSL=False
+# =======
 
->>>>>>> a28ca02c318214b318c617130f6bfc7aa865a5b7
+
 
 
 

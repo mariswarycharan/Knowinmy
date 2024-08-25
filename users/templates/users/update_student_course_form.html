@@ -95,7 +95,7 @@
         <div class="container">
             <h1>Update Course for Student</h1>
             <div class="card">
-                <form id="update_course_map_form"name="update_course_map_form" method="post" action="{% url 'student-course-update' %}">
+                <form id="update_course_map_form" name="update_course_map_form" method="post" action="{% url 'student-course-update' enrollment_id=enrollment_id slug=tenant.slug %}">
                     {% csrf_token %}
                     
                     <!-- Form Fields -->
@@ -111,7 +111,7 @@
                     <div class="d-flex justify-content-between">
                         <input type="hidden" name="enrollment_id" value="{{ enrollment_id }}">
                         <button type="submit" name="update_course_map_form" class="btn btn-primary btn-sm" onclick="this.disabled=true;submit_form()">Update Course</button>
-                        <a href="{% url 'student-mapp-courses' %}" class="btn btn-secondary btn-sm ml-2">Back to Courses</a>
+                        <a href="{% url 'student-mapp-courses' slug=tenant.slug %}" class="btn btn-secondary btn-sm ml-2">Back to Courses</a>
                     </div>
                 </form>
             </div>

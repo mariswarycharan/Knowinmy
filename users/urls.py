@@ -13,14 +13,16 @@ from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     # Base path with slug
-    path('<slug:slug>/', home, name='home'),
-    path('<slug:slug>/register/', register, name='register'),
-    path('<slug:slug>/register-organisation/', register_organisation, name='register_organization'),
-    path('<slug:slug>/login/', user_login, name='login'),
+    path('', home, name='home'),
+    path('register/', register, name='register'),
+    path('register-organisation/', register_organisation, name='register_organization'),
+    path('login/', user_login, name='login'),
+    path('<slug:slug>/login/', user_login, name='login_slug'),
     path('<slug:slug>/payment/', subscription_payment, name='subscription-payment'),
     path('<slug:slug>/razorpay/callback/', callback, name='callback'),
     path('<slug:slug>/logout/', log_out, name='logout'),
     path('<slug:slug>/create_asana/', CreateAsanaView.as_view(), name='create-asana'),
+    path('<slug:slug>/update_asana/<int:asana_id>/', CreateAsanaView.as_view(), name='update_asana'),
     path('<slug:slug>/staff_dashboard/', staff_dashboard_function, name='staff_dashboard'),
     path('<slug:slug>/view_trained/', view_trained, name='view-trained'),
     path('<slug:slug>/view_posture/<int:asana_id>/', view_posture, name='view-posture'),
@@ -32,7 +34,6 @@ urlpatterns = [
     path('<slug:slug>/onboarding_users_form/', onboarding_view, name='onboard-users-form'),
     path('<slug:slug>/client_table/', client_list, name='client-list'),
     path('<slug:slug>/trainer_dashboard/', CourseCreationView.as_view(), name='create-course'),
-    path('<slug:slug>/update_asana/<int:asana_id>/', CreateAsanaView.as_view(), name='update_asana'),
     path('<slug:slug>/update_course/<int:course_id>/', CourseCreationView.as_view(), name='update_course'),
     path('<slug:slug>/profile/', profile_view, name='profile-user'),
     path('<slug:slug>/student_mapping/', StudentCourseMapView.as_view(), name='student-mapp-courses'),

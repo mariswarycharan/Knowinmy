@@ -193,7 +193,7 @@ def callback(request):
 # integrity error need to handle in this view - username must be unique
 
 
-@login_required
+# @login_required
 @user_passes_test(check_client)
 def Trainer_approval_function(request):
     try:
@@ -339,20 +339,21 @@ def onboarding_view(request):
     return render(request, 'users/onboarding_form.html', {'formset': formset})
 
 
-def user_login(request):
+def user_login(request, slug=None):
+    tenant = None
 
+    if slug:
+        try:
+            tenant = Tenant.objects.get(slug=slug)
 
+        except Tenant.DoesNotExist:
+            sweetify.warning(request, "Tenant not found, redirecting to default login", button="OK")
+            print("tenant not found line 350")
+            return redirect('login')  # Redirect to a default login view or page
 
-    if request.user.is_authenticated:
-        for group in request.user.groups.all():
-            if group.name == 'Client':
-                return render(request, 'users/Trainer_approval_Page.html')
-            elif group.name == 'Trainer':
-                return render(request, 'users/view_trained.html')
-            else:
-                return render(request, "users/staff_dashboard.html")
-        return redirect("home")
-
+    # If the user is already authenticated
+    # print("line 354")
+ 
     if request.method == "POST":
         email = request.POST.get("email")
         password = request.POST.get("password")
@@ -363,33 +364,46 @@ def user_login(request):
                 auth_login(request, user)
                 for group in request.user.groups.all():
                     if group.name == 'Client':
-                        return render(request, 'users/Trainer_approval_Page.html')
+                        return redirect('trainer-approval', slug=slug if slug else '')
                     elif group.name == 'Trainer':
-                        return render(request, 'users/view_trained.html')
+                        return redirect('view-trained', slug=slug if slug else '')
                     else:
-                        return redirect("staff_dashboard")
+                        return redirect('staff_dashboard', slug=slug if slug else '')
                 return redirect("home")
             else:
-                return render(request, "users/login.html", {
-                    # 'idempo_token': idempo.token
-                })
-        except User.DoesNotExist as e:
-            capture_exception(e)
-            sweetify.warning(request,"User not found",button="OK")
-            return render(request, "users/login.html", {
-                # 'idempo_token': idempo.token
-            })
+                sweetify.warning(request, "Invalid credentials", button="OK")
+                return render(request, "users/login.html", {'tenant': tenant})
+        except User.DoesNotExist:
+            sweetify.warning(request, "User not found", button="OK")
+            return render(request, "users/login.html", {'tenant': tenant})
+    if request.user.is_authenticated:
+         current_user=request.user
+         print(current_user,"line 381")
+         tenant = get_object_or_404(Tenant, client_name=current_user)
+         slug = tenant.slug
+         print(slug,"line 382")
+         for group in request.user.groups.all():
+            if group.name == 'Client':
+               return redirect('trainer-approval', slug=slug if slug else '')
+            elif group.name == 'Trainer':
+                return redirect('view-trained', slug=slug if slug else '')
+            else:
+                return redirect('staff_dashboard', slug=slug if slug else '')
+    return redirect('home')
+    
+      
 
-    else:
-        return render(request, "users/login.html", {
-            # 'idempo_token': idempo.token
-        })
+    # If the user is not authenticated and POST request is received
+
+    # If GET request is received, render the login page
+    return render(request, "users/login.html", {'tenant': tenant})
 
 
 
 @login_required(login_url='login')
-def log_out(request):
+def log_out(request,slug):
     try:
+        tenant = Tenant.objects.get(slug=slug)
         auth.logout(request)  # Logout the user
         sweetify.success(request, "User logged out successfully", button="OK")
         
@@ -399,7 +413,7 @@ def log_out(request):
         else:
             return redirect('home')  # Redirect to the normal home page if no tenant slug
     except Exception as e:
-        messages.error(request, 'An error occurred while logging out.')
+        # messages.error(request, 'An error occurred while logging out.')
         print(e)
         return redirect('home')  # Redirect to the home page in case of error
 
@@ -407,9 +421,11 @@ def log_out(request):
 @user_passes_test(check_trainer or check_client)
 def view_trained(request,slug):
 
-    tenant = Tenant.objects.get(slug=slug)
+    tenant = getattr(request, 'tenant', None)
     print(tenant,"Line 404") # Assuming tenant is set in middleware
     trained_asanas = Asana.objects.filter(created_by=request.user, tenant=tenant)
+    print(trained_asanas,"line 426")
+    print(request.user,"line 427")
    
     return render(request, "users/view_trained.html", {
         "trained_asanas": trained_asanas,
@@ -442,40 +458,51 @@ class CreateAsanaView(UserPassesTestMixin, View):
 
     def get_max_forms(self, request,slug):
         trainee_name = self.request.user
-        tenant = Tenant.objects.get(slug=slug)  # Assuming tenant is set in middleware
+        # tenant = Tenant.objects.get(slug=slug)
+        tenant = getattr(request, 'tenant', None)
+        print(tenant,"line 459")
+        print(slug,"line 460")  # Assuming tenant is set in middleware
         try:
             print(trainee_name)
             client_for_trainer = TrainerLogDetail.objects.filter(trainer_name=trainee_name, tenant=tenant).first()
+            print(client_for_trainer,"line 465 client for trainer")
             if client_for_trainer:
                 client = client_for_trainer.onboarded_by
+                print(client,"line 467 client")
                 no_of_asanas_created_by_trainee = client_for_trainer.no_of_asanas_created
+                print(no_of_asanas_created_by_trainee,"line 468")
 
-                transaction = Order.objects.filter(name=client, status='ACCEPT', tenant=tenant).first()
+                transaction = Order.objects.filter(name=client_for_trainer, status='ACCEPT', tenant=tenant).first()
+                print(transaction,"line 470")
                 if transaction:
                     subscription = transaction.subscription
                     max_forms = subscription.permitted_asanas
                 else:
-                    max_forms = 1
+                    max_forms = 0
                     no_of_asanas_created_by_trainee = 0
             else:
-                max_forms = 1
+                max_forms = 0    
                 no_of_asanas_created_by_trainee = 0
         except Exception as e:
             print(f"Exception occurred: {e}")
             capture_exception(e)
-            max_forms = 1
+            max_forms = 0
             no_of_asanas_created_by_trainee = 0
 
         return max_forms, no_of_asanas_created_by_trainee
 
-    def get(self, request, *args, **kwargs):
-        tenant = request.tenant  # Assuming tenant is set in middleware
-        max_forms, no_of_asanas_created_by_trainee = self.get_max_forms(request)
-        print(max_forms)
+    def get(self, request,slug, *args, **kwargs):
+        print(slug,"line 488")
+        tenant = getattr(request, 'tenant', None)
+        print(tenant,"line 488")  # Assuming tenant is set in middleware
+        max_forms, no_of_asanas_created_by_trainee = self.get_max_forms(request,slug)
+
+        print(max_forms,"line 493")
 
         AsanaCreationFormSet = formset_factory(AsanaCreationForm, extra=1, max_num=max_forms, validate_max=True, absolute_max=max_forms)
 
         if 'update' in request.GET:
+            tenant = getattr(request, 'tenant', None)
             asana_id = request.GET.get('asana_id')
             print(asana_id)
             asana = Asana.objects.get(id=asana_id, tenant=tenant)
@@ -497,12 +524,15 @@ class CreateAsanaView(UserPassesTestMixin, View):
                 'tenant':tenant
             })
 
-    def post(self, request, *args, **kwargs):
-        tenant = request.tenant  # Assuming tenant is set in middleware
-        max_forms, no_of_asanas_created_by_trainee = self.get_max_forms(request)
+    def post(self, request,slug, *args, **kwargs):
+        tenant = getattr(request, 'tenant', None) or Tenant.objects.get(slug=slug)
+        print(tenant,"line 518") # Assuming tenant is set in middleware
+        max_forms, no_of_asanas_created_by_trainee = self.get_max_forms(request,slug)
+        print(max_forms,"line 523")
         AsanaCreationFormSet = formset_factory(AsanaCreationForm, extra=1, max_num=max_forms, validate_max=True, absolute_max=max_forms)
         created_asanas_by_trainer = TrainerLogDetail.objects.get(trainer_name=request.user, tenant=tenant)
         remaining_forms = max_forms - no_of_asanas_created_by_trainee
+        print(remaining_forms,"line 526")
 
         if 'update_asana' in request.POST:
             asana_id = request.POST.get('asana_id')
@@ -510,7 +540,7 @@ class CreateAsanaView(UserPassesTestMixin, View):
             form = AsanaCreationForm(request.POST, instance=asana)
             if form.is_valid():
                 form.save()
-                return redirect("view-trained")
+                return redirect("view-trained",slug=slug if slug else '')
             else:
                 return render(request, "users/update_asana.html", {
                     'form': form,
@@ -526,7 +556,7 @@ class CreateAsanaView(UserPassesTestMixin, View):
             created_asanas_by_trainer.no_of_asanas_created -= 1
             created_asanas_by_trainer.save()
             asana.delete()
-            return redirect("view-trained")
+            return redirect("view-trained",slug=slug if slug else '')
 
         else:
             formset = AsanaCreationFormSet(request.POST)
@@ -535,12 +565,13 @@ class CreateAsanaView(UserPassesTestMixin, View):
                 for form in formset:
                     print("888888888888888")
                     if remaining_forms > 0:
+                        print(remaining_forms,"line 561")
                         asana = form.save(commit=False)
                         asana.created_by = request.user
                         asana.tenant = tenant  # Ensure the tenant is set for the asana
                         asana.created_at = timezone.now()
                         asana.last_modified_at = timezone.now()
-                        print("asssssssssssssssssssssssssss ")
+                        print("")
                         asana.save()
 
                         created_asanas_by_trainer.no_of_asanas_created += 1
@@ -553,8 +584,12 @@ class CreateAsanaView(UserPassesTestMixin, View):
 
                         no_of_asanas_created_by_trainee += 1
                         remaining_forms -= 1
-                        print(remaining_forms, "lllllllllllllllllllllllllllllllllllllllllllll")
-                    return redirect("view-trained")
+                        print(remaining_forms, "line 579")
+                        return redirect("view-trained",slug=slug if slug else '')
+                    else:
+                        break
+
+                    
             else:
                 return render(request, "users/create_asana.html", {
                     'formset': formset,
@@ -569,7 +604,8 @@ class CourseCreationView(UserPassesTestMixin, View):
         return check_trainer(self.request.user)
 
     def get(self, request,slug, *args, **kwargs):
-        tenant = Tenant.objects.get(slug=slug)  # Assuming tenant is set in middleware
+        tenant = getattr(request, 'tenant', None)
+        print(tenant,"line 592")  # Assuming tenant is set in middleware
         course_id = kwargs.get('course_id')
         current_user = self.request.user
         
@@ -595,34 +631,40 @@ class CourseCreationView(UserPassesTestMixin, View):
             })
 
     def post(self, request, slug,*args, **kwargs):
-        tenant = Tenant.objects.get(slug=slug) # Assuming tenant is set in middleware
+        tenant = getattr(request, 'tenant', None) # Assuming tenant is set in middleware
         course_id = request.POST.get('course_id')
         print(course_id, "line 614")
         current_user = self.request.user
         
         if 'update_course' in request.POST:
             course = get_object_or_404(CourseDetails, id=course_id, tenant=tenant)
+            print(tenant,"line 639")
             form = CourseCreationForm(request.POST, instance=course, user=self.request.user)
             print("line 620")
             if form.is_valid():
                 form.save()
-                return redirect('view-trained')
+                return redirect('view-trained',slug=slug if slug else '')
+                
+               
             else:
                 return render(request, "users/update_course.html", {
                     'form': form,
                     'course_id': course_id,
                     'is_trainer': True,
+
                     
                 'tenant':tenant
                 })
 
+                
+    
         elif 'delete_course' in request.POST:
             course = get_object_or_404(CourseDetails, id=course_id, tenant=tenant)
             course.delete()
-            return render(request, 'users/trainer_dashboard.html')
-
+            return redirect('create-course',slug=slug if slug else '')
         else:
             form = CourseCreationForm(request.POST, user=self.request.user)
+            print(self.request.user,"line 661 to get user ")
             if form.is_valid():
                 course = form.save(commit=False)
                 course.user = request.user
@@ -632,13 +674,13 @@ class CourseCreationView(UserPassesTestMixin, View):
                 course.save()  # Save the instance to the database
                 form.save_m2m()  # Save many-to-many data
 
-                return render(request, 'users/trainer_dashboard.html')
+                return redirect('create-course',slug=slug if slug else '')
             else:
                 return render(request, "users/trainer_dashboard.html", {
                     'form': form,
                     'is_trainer': True,
                     
-                'tenant':tenant
+                    'tenant':tenant
                 })
 
 
@@ -712,41 +754,50 @@ class StudentCourseMapView(LoginRequiredMixin, UserPassesTestMixin, View):
     def test_func(self):
         return check_trainer(self.request.user)
     
-    def get_enrollment_details(self, user):
-        tenant = self.request.tenant  # Assuming tenant is set in middleware
-        trainer_details = TrainerLogDetail.objects.filter(trainer_name=user, tenant=tenant).first()
+    def get_enrollment_details(self,request,slug):
+        trainee_name=self.request.user
+        tenant = getattr(request, 'tenant', None) or Tenant.objects.get(slug=slug)
+        print(tenant,"line 759")
+        print(slug,"slug must be printed") # Assuming tenant is set in middleware
+        trainer_details = TrainerLogDetail.objects.filter(trainer_name=trainee_name, tenant=tenant).first()
         if trainer_details:
             client_name = trainer_details.onboarded_by
+            print(client_name,"client name")
             enrolled_studs = list(StudentLogDetail.objects.filter(added_by=client_name, tenant=tenant))
             if enrolled_studs:
                 student_names = [student.student_name for student in enrolled_studs]
                 students = User.objects.filter(username__in=student_names)
                 enrollment_details = EnrollmentDetails.objects.filter(user__in=students, tenant=tenant)
+                print(enrollment_details,"lolllll")
                 return enrollment_details
         return EnrollmentDetails.objects.none()  # Return an empty queryset if no students found
 
-    def get(self, request, *args, **kwargs):
-        enrollment_details = self.get_enrollment_details(request.user)
+    def get(self, request,slug, *args, **kwargs):
+        tenant = getattr(request, 'tenant', None) or Tenant.objects.get(slug=slug)
+        enrollment_details = self.get_enrollment_details(request.user,slug)
+        print(enrollment_details,"line no 776")
         enrollment_id = request.GET.get('enrollment_id')
         
         if enrollment_id:
-            enrollment = get_object_or_404(EnrollmentDetails, id=enrollment_id, tenant=request.tenant)
+            enrollment = get_object_or_404(EnrollmentDetails, id=enrollment_id, tenant=tenant)
             form = StudentCourseMappingForm(instance=enrollment, user=self.request.user)
             return render(request, "users/update_student_course_form.html", {
                 'form': form,
                 'enrollment_id': enrollment_id,
+                'tenant':tenant,
             })
         else:
             form = StudentCourseMappingForm(user=self.request.user)
             return render(request, "users/student_mapping.html", {
                 'form': form,
                 'enrollment_details': enrollment_details,
+                'tenant':tenant
             })
     
-    def post(self, request, *args, **kwargs):
-        tenant = request.tenant  # Assuming tenant is set in middleware
+    def post(self, request,slug, *args, **kwargs):
+        tenant = getattr(request, 'tenant', None) or Tenant.objects.get(slug=slug) # Assuming tenant is set in middleware
         enrollment_id = request.POST.get('enrollment_id')
-        enrollment_details = self.get_enrollment_details(request.user)
+        enrollment_details = self.get_enrollment_details(request.user,slug)
         
         if 'update_course_map_form' in request.POST and enrollment_id:
             enrollment = get_object_or_404(EnrollmentDetails, id=enrollment_id, tenant=tenant)
@@ -756,18 +807,20 @@ class StudentCourseMapView(LoginRequiredMixin, UserPassesTestMixin, View):
                 return render(request, "users/update_student_course_form.html", {
                     'form': form,
                     'enrollment_id': enrollment_id,
+                    'tenant':tenant,
                 })
             else:
                 return render(request, "users/student_mapping.html", {
                     'form': form,
                     'enrollment_details': enrollment_details,
                     'enrollment_id': enrollment_id,
+                    'tenant':tenant,
                 })
 
         elif 'delete_course_map_form' in request.POST and enrollment_id:
             enrollment = get_object_or_404(EnrollmentDetails, id=enrollment_id, tenant=tenant)
             enrollment.delete()
-            return render(request, 'users/student_mapping.html')
+            return render(request, 'users/student_mapping.html',{'tenant':tenant})
 
         else:
             form = StudentCourseMappingForm(request.POST, user=request.user)
@@ -782,11 +835,13 @@ class StudentCourseMapView(LoginRequiredMixin, UserPassesTestMixin, View):
                     'form': form,
                     'enrollment_details': enrollment_details,
                     'enrollment_id': enrollment_id,
+                    'tenant':tenant
                 })
             else:
                 return render(request, "users/trainer_dashboard.html", {
                     'form': form,
                     'enrollment_id': enrollment_id,
+                     'tenant':tenant
                 })
 
 
@@ -957,7 +1012,7 @@ def register_organisation(request):
         if form.is_valid():
             form.save()  # Save the form data to the Tenant model
             print("Form is valid. Redirecting to login.")
-            return redirect(reverse('login'))  # Ensure 'login' matches your URL pattern name
+            return redirect('login')  # Ensure 'login' matches your URL pattern name
         else:
             print("Form is invalid. Errors:", form.errors)
     else:

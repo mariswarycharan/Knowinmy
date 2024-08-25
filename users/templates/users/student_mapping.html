@@ -39,8 +39,8 @@
                     <p class="card-text text-muted">
                         Last modified at: {{ enrollment.updated_at }}
                     </p>
-                    <a href="{% url 'student-mapp-courses' %}?enrollment_id={{ enrollment.id }}" class="btn btn-info btn-sm">Edit</a>
-                    <form method="POST" action="{% url 'student-mapp-courses' %}" style="display:inline;">
+                    <a href="{% url 'student-mapp-courses' slug=tenant.slug %}?enrollment_id={{ enrollment.id }}" class="btn btn-info btn-sm">Edit</a>
+                    <form method="POST" action="{% url 'student-mapp-courses' slug=tenant.slug  %}" style="display:inline;">
                         {% csrf_token %}
                         <input type="hidden" name="enrollment_id" value="{{ enrollment.id }}">
                         <button type="submit" name="delete_course_map_form"id="delete-button-{{ enrollment.id }}" onclick="del_enrollment('{{ enrollment.id }}')" class="btn btn-danger btn-sm">Delete</button>
@@ -62,18 +62,18 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="enrollmentModalLabel">
-                    {% if form.instance.id %}Update Enrollment{% else %}Create Enrollment{% endif %}
+                   Create Enrollment
                 </h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <form id="enrollment_form" method="POST" action="{% if form.instance.id %}{% url 'student-mapp-courses' %}?enrollment_id={{ form.instance.id }}{% else %}{% url 'student-mapp-courses' %}{% endif %}">
+                <form id="enrollment_form" method="POST" action="{% url 'student-mapp-courses'  slug=tenant.slug %}">
                     {% csrf_token %}
                     {{ form.as_p }}
                     <button type="submit" class="btn btn-primary">
-                        {% if form.instance.id %}Update Enrollment{% else %}Create Enrollment{% endif %}
+                        Create Enrollment
                     </button>
                 </form>
             </div>

@@ -64,6 +64,7 @@ class StudentCourseMappingForm(ModelForm):
                 queryset=StudentLogDetail.objects.filter(added_by=client_name, tenant=self.tenant),
                 initial=self.instance.user if self.instance.pk else None
             )
+            print(self.fields['user'],"line no 67 in forms ")
             self.fields['students_added_to_courses'] = forms.ModelMultipleChoiceField(
                 queryset=CourseDetails.objects.filter(user=self.trainer_user, tenant=self.tenant),
                 widget=forms.CheckboxSelectMultiple
@@ -90,7 +91,11 @@ class CourseCreationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.tenant = kwargs.pop('tenant', None)
+        print(kwargs,"line 93")
+        print(args,"line 94")
+        print(self.tenant,"linr 93 forms.py")
         self.user = kwargs.pop('user', None)
+        print(self.user,"line 94")
         super(CourseCreationForm, self).__init__(*args, **kwargs)
 
         if self.tenant and self.user:
@@ -98,6 +103,8 @@ class CourseCreationForm(forms.ModelForm):
                 queryset=Asana.objects.filter(created_by=self.user, tenant=self.tenant),
                 widget=forms.CheckboxSelectMultiple
             )
+            print(self.user,"line 105 in forms.py")
+            print(self.fields['asanas_by_trainer'] ,"line no 102 in forms.py ")
         self.fields['description'].widget = forms.Textarea(attrs={'rows': 2})
 
     def save(self, commit=True):
@@ -176,4 +183,13 @@ class OrganisationForm(forms.ModelForm):
 
 
 
+class UserOnboardingForm(forms.ModelForm):
+    ROLE_CHOICES = [
+        ('trainer', 'Trainer'),
+        ('student', 'Student')
+    ]
+    role = forms.ChoiceField(choices=ROLE_CHOICES)
 
+    class Meta:
+        model = User
+        fields = ['username','first_name', 'last_name', 'email', 'role']

@@ -26,7 +26,7 @@
                             </form>
                         </div>
                         <div class="col-auto">
-                            <a href="{% url 'view-posture' trained_asana.id slug=tenant.slug  %}">
+                            <a href="{% url 'view-posture' slug=tenant.slug asana_id=trained_asana.id %}">
                                 <i class="fas fa-arrow-right fa-2x text-gray-300"></i>
                             </a>
                         </div>
