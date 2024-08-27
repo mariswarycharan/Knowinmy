@@ -193,18 +193,20 @@ def callback(request):
 # integrity error need to handle in this view - username must be unique
 
 
-# @login_required
+@login_required
 @user_passes_test(check_client)
-def Trainer_approval_function(request):
+def Trainer_approval_function(request,slug):
     try:
         # Get the tenant from the request
-        tenant = request.tenant if request.tenant else None
+        tenant = Tenant.objects.get(slug=slug) 
+        print(tenant,"line ")
 
         if tenant is None:
             return render(request, 'error.html', {'message': 'Tenant not found'})
 
         if request.method == 'POST':
             admin_user = request.user
+            print(admin_user,"line 209")
 
             # Ensure that you're filtering orders based on the tenant
             order_transaction = Order.objects.filter(
@@ -212,6 +214,7 @@ def Trainer_approval_function(request):
                 status='ACCEPT',
                 tenant=tenant  # Filter based on tenant
             ).first()
+            print(order_transaction,"line 217")
 
             if not order_transaction:
                 sweetify.warning(request, "No transaction found", button="OK")
@@ -219,31 +222,33 @@ def Trainer_approval_function(request):
 
             subscription = order_transaction.subscription
             no_of_persons_onboard_by_client = subscription.no_of_persons_onboard
+            print(no_of_persons_onboard_by_client,"line no 225")
 
             # Handle file upload
             uploaded_file = request.FILES.get('excel_file')
             if uploaded_file:
                 admin_user_id = admin_user.id
+                print(admin_user_id,"line 231")
 
                 # Save the uploaded file temporarily
                 file_path = default_storage.save(f'temp/{uploaded_file.name}', ContentFile(uploaded_file.read()))
                 
                 # Pass file path, admin user ID, and tenant information to the Celery task
-                process_excel_file.delay(file_path, admin_user_id, no_of_persons_onboard_by_client, tenant.slug)
+                process_excel_file.delay(file_path, admin_user_id, no_of_persons_onboard_by_client, tenant.id)
 
                 sweetify.success(request, "Users are being onboarded, you'll be notified once done.", button="OK")
             else:
                 sweetify.error(request, "No file uploaded!", button="OK")
 
-            return render(request, 'users/Trainer_approval_Page.html')
+            return render(request, 'users/Trainer_approval_Page.html',{'tenant': tenant})
 
         else:
-            return render(request, 'users/Trainer_approval_Page.html')
+            return render(request, 'users/Trainer_approval_Page.html',{'tenant': tenant})
 
     except Exception as e:
         print(e)
         capture_exception(e)
-        return render(request, 'users/staff_dashboard.html')
+        return render(request, 'users/staff_dashboard.html',{'tenant': tenant})
     
 
 
@@ -265,9 +270,11 @@ def client_list(request):
 
 
 @login_required
-def onboarding_view(request):
+def onboarding_view(request,slug):
     admin_user = request.user
-    tenant = request.tenant  # Assuming tenant is set in middleware
+    tenant = Tenant.objects.get(slug=slug)
+    print(tenant,"line 276")
+    # Assuming tenant is set in middleware
 
     # Filter the order by tenant and user
     order_transaction = Order.objects.filter(name=admin_user, status='ACCEPT', tenant=tenant).first()
@@ -305,7 +312,7 @@ def onboarding_view(request):
         if formset.is_valid():
             for form in formset:
                 user = form.save(commit=False)
-                user.set_unusable_password()  # or set a random password if you prefer
+                 # or set a random password if you prefer
                 user.save()
 
                 role = form.cleaned_data.get('role')
@@ -331,32 +338,45 @@ def onboarding_view(request):
             client_onboarding.save()
             remaining_forms -= len(formset)
             print(remaining_forms, "Remaining Forms after Onboarding")
-            return render(request, 'users/Trainer_approval_Page.html')
+            return render(request, 'users/Trainer_approval_Page.html',{'tenant':tenant})
 
     else:
         formset = UserFormSet()
 
-    return render(request, 'users/onboarding_form.html', {'formset': formset})
+    return render(request, 'users/onboarding_form.html', {'formset': formset,'tenant':tenant})
 
 
-def user_login(request, slug=None):
-    tenant = None
 
-    if slug:
-        try:
-            tenant = Tenant.objects.get(slug=slug)
-
-        except Tenant.DoesNotExist:
-            sweetify.warning(request, "Tenant not found, redirecting to default login", button="OK")
-            print("tenant not found line 350")
-            return redirect('login')  # Redirect to a default login view or page
+   
 
     # If the user is already authenticated
     # print("line 354")
  
+def user_login(request, slug=None):
+    # Print to confirm view is accessed
+    print("Login view accessed", request.method)
+
+    if request.user.is_authenticated:
+        current_user = request.user
+        print(current_user, "line 381")
+        tenant = get_object_or_404(Tenant, client_name=current_user)
+        print(tenant,"line 356")
+        slug = tenant.slug
+        print(slug, "line 382")
+        for group in request.user.groups.all():
+            if group.name == 'Client':
+                return redirect('Trainer-approval', slug=slug)
+            elif group.name == 'Trainer':
+                return redirect('view-trained', slug=slug)
+            else:
+                return redirect('staff_dashboard', slug=slug)
+        return redirect('home')
+
     if request.method == "POST":
+        print("Login view accessed", request.method)
         email = request.POST.get("email")
         password = request.POST.get("password")
+        print("Email:", email)
         try:
             user_obj = User.objects.get(email=email)
             user = authenticate(username=user_obj.username, password=password)
@@ -364,11 +384,11 @@ def user_login(request, slug=None):
                 auth_login(request, user)
                 for group in request.user.groups.all():
                     if group.name == 'Client':
-                        return redirect('trainer-approval', slug=slug if slug else '')
+                        return redirect('Trainer-approval', slug=slug)
                     elif group.name == 'Trainer':
-                        return redirect('view-trained', slug=slug if slug else '')
+                        return redirect('view-trained', slug=slug)
                     else:
-                        return redirect('staff_dashboard', slug=slug if slug else '')
+                        return redirect('staff_dashboard', slug=slug)
                 return redirect("home")
             else:
                 sweetify.warning(request, "Invalid credentials", button="OK")
@@ -376,28 +396,17 @@ def user_login(request, slug=None):
         except User.DoesNotExist:
             sweetify.warning(request, "User not found", button="OK")
             return render(request, "users/login.html", {'tenant': tenant})
-    if request.user.is_authenticated:
-         current_user=request.user
-         print(current_user,"line 381")
-         tenant = get_object_or_404(Tenant, client_name=current_user)
-         slug = tenant.slug
-         print(slug,"line 382")
-         for group in request.user.groups.all():
-            if group.name == 'Client':
-               return redirect('trainer-approval', slug=slug if slug else '')
-            elif group.name == 'Trainer':
-                return redirect('view-trained', slug=slug if slug else '')
-            else:
-                return redirect('staff_dashboard', slug=slug if slug else '')
-    return redirect('home')
     
+    # Render login page if not authenticated and not POST request
+    print("Login view accessed", request.method)
+    return render(request, "users/login.html")
+       
       
 
     # If the user is not authenticated and POST request is received
 
     # If GET request is received, render the login page
-    return render(request, "users/login.html", {'tenant': tenant})
-
+  
 
 
 @login_required(login_url='login')
@@ -612,7 +621,7 @@ class CourseCreationView(UserPassesTestMixin, View):
         print(course_id, "line 594x")
         if course_id:
             course = get_object_or_404(CourseDetails, id=course_id, tenant=tenant)
-            form = CourseCreationForm(instance=course, user=self.request.user)
+            form = CourseCreationForm(instance=course, user=self.request.user,tenant=tenant)
             return render(request, "users/update_course.html", {
                 'form': form,
                 'course_id': course_id,
@@ -620,7 +629,7 @@ class CourseCreationView(UserPassesTestMixin, View):
                 'tenant':tenant
             })
         else:
-            form = CourseCreationForm(user=self.request.user)
+            form = CourseCreationForm(user=self.request.user,tenant=tenant)
             courses = CourseDetails.objects.filter(user=current_user, tenant=tenant)
             return render(request, "users/trainer_dashboard.html", {
                 'form': form,
@@ -631,7 +640,8 @@ class CourseCreationView(UserPassesTestMixin, View):
             })
 
     def post(self, request, slug,*args, **kwargs):
-        tenant = getattr(request, 'tenant', None) # Assuming tenant is set in middleware
+        tenant = getattr(request, 'tenant', None) 
+        print(tenant,"line 637")# Assuming tenant is set in middleware
         course_id = request.POST.get('course_id')
         print(course_id, "line 614")
         current_user = self.request.user
@@ -639,7 +649,7 @@ class CourseCreationView(UserPassesTestMixin, View):
         if 'update_course' in request.POST:
             course = get_object_or_404(CourseDetails, id=course_id, tenant=tenant)
             print(tenant,"line 639")
-            form = CourseCreationForm(request.POST, instance=course, user=self.request.user)
+            form = CourseCreationForm(request.POST, instance=course, user=self.request.user,tenant=tenant)
             print("line 620")
             if form.is_valid():
                 form.save()
@@ -663,7 +673,7 @@ class CourseCreationView(UserPassesTestMixin, View):
             course.delete()
             return redirect('create-course',slug=slug if slug else '')
         else:
-            form = CourseCreationForm(request.POST, user=self.request.user)
+            form = CourseCreationForm(request.POST, user=self.request.user,tenant=tenant)
             print(self.request.user,"line 661 to get user ")
             if form.is_valid():
                 course = form.save(commit=False)
@@ -696,9 +706,11 @@ def home(request, slug=None):
         return render(request, "users/home.html")
 @login_required
 @user_passes_test(check_student)
-def staff_dashboard_function(request):
+def staff_dashboard_function(request,slug):
     user = request.user
-    tenant = request.tenant  # Assuming tenant is set in middleware
+    tenant = getattr(request, 'tenant', None) or Tenant.objects.get(slug=slug)
+    print(tenant,"from staff_dashboard")
+
 
     if user.groups.filter(name='Trainer').exists() or user.is_superuser:
         is_trainer = True
@@ -707,6 +719,7 @@ def staff_dashboard_function(request):
 
     context = {
         'is_trainer': is_trainer,
+        'tenant':tenant
     }
     
     return render(request, "users/staff_dashboard.html", context)
@@ -715,8 +728,8 @@ def staff_dashboard_function(request):
 
 @login_required
 @user_passes_test(check_trainer)
-def edit_posture(request, posture_id):
-    tenant = request.tenant  # Assuming tenant is set in middleware
+def edit_posture(request,slug, posture_id):
+    tenant = getattr(request, 'tenant', None) or Tenant.objects.get(slug=slug)
     posture = get_object_or_404(Posture, id=posture_id, asana__tenant=tenant)
     
     if request.method == "POST":
@@ -780,14 +793,14 @@ class StudentCourseMapView(LoginRequiredMixin, UserPassesTestMixin, View):
         
         if enrollment_id:
             enrollment = get_object_or_404(EnrollmentDetails, id=enrollment_id, tenant=tenant)
-            form = StudentCourseMappingForm(instance=enrollment, user=self.request.user)
+            form = StudentCourseMappingForm(instance=enrollment, user=self.request.user,tenant=tenant)
             return render(request, "users/update_student_course_form.html", {
                 'form': form,
                 'enrollment_id': enrollment_id,
                 'tenant':tenant,
             })
         else:
-            form = StudentCourseMappingForm(user=self.request.user)
+            form = StudentCourseMappingForm(user=self.request.user,tenant=tenant)
             return render(request, "users/student_mapping.html", {
                 'form': form,
                 'enrollment_details': enrollment_details,
@@ -801,7 +814,7 @@ class StudentCourseMapView(LoginRequiredMixin, UserPassesTestMixin, View):
         
         if 'update_course_map_form' in request.POST and enrollment_id:
             enrollment = get_object_or_404(EnrollmentDetails, id=enrollment_id, tenant=tenant)
-            form = StudentCourseMappingForm(request.POST, instance=enrollment, user=request.user)
+            form = StudentCourseMappingForm(request.POST, instance=enrollment, user=request.user,tenant=tenant)
             if form.is_valid():
                 form.save()
                 return render(request, "users/update_student_course_form.html", {
@@ -823,7 +836,7 @@ class StudentCourseMapView(LoginRequiredMixin, UserPassesTestMixin, View):
             return render(request, 'users/student_mapping.html',{'tenant':tenant})
 
         else:
-            form = StudentCourseMappingForm(request.POST, user=request.user)
+            form = StudentCourseMappingForm(request.POST, user=request.user,tenant=tenant)
             if form.is_valid():
                 enrollment = form.save(commit=False)
                 enrollment.created_at = timezone.now()
@@ -854,6 +867,7 @@ def user_view_asana(request,slug):
     tenant = Tenant.objects.get(slug=slug)  
     print(tenant,"line 781")# Assuming tenant is set in middleware
     current_user = request.user
+    print(current_user," line 864")
 
     enrolled_student_to_courses = EnrollmentDetails.objects.filter(user=current_user, tenant=tenant)
     trainer_asanas = []
@@ -875,8 +889,9 @@ def user_view_asana(request,slug):
 
 @login_required
 @user_passes_test(check_student)
-def user_view_posture(request, asana_id):
-    tenant = request.tenant  # Assuming tenant is set in middleware
+def user_view_posture(request,slug, asana_id):
+    tenant = Tenant.objects.get(slug=slug)
+    print(tenant,"line 886 in views.py ")
     try:
         asana = get_object_or_404(Asana, id=asana_id, tenant=tenant)
         postures = Posture.objects.filter(asana=asana).order_by('step_no')

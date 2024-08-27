@@ -16,7 +16,7 @@
                                 <ul>
                                     {% for asana_detail in asana.asanas_by_trainer.all %}
                                     <li>
-                                        <a href="{% url 'user-view-posture' asana_detail.id %}">
+                                        <a href="{% url 'user-view-posture' asana_id=asana_detail.id slug=asana.tenant.slug %}">
                                             {{ asana_detail.name }}
                                         </a>
                                     </li>

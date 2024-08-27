@@ -9,8 +9,10 @@ from django.db.models import F
 
 @shared_task
 def process_excel_file(file_path, admin_user_id, no_of_persons_onboard_by_client, tenant_id):
+    tenant = Tenant.objects.get(id=tenant_id)
     print(no_of_persons_onboard_by_client, "kkkkkkkkkkkkkkkkkkkkkkkkk")
     print(admin_user_id, "pppppppppppppppppppppppppppppppppppppppp")
+    print(tenant,"line no 14 from tasks.py ")
 
     try:
         print("Starting file processing...")
@@ -56,7 +58,7 @@ def process_excel_file(file_path, admin_user_id, no_of_persons_onboard_by_client
 
             # Fetch or create ClientOnboarding record for admin_user
             client_onboarding, created = ClientOnboarding.objects.get_or_create(
-                client=admin_user, tenant_id=tenant_id)
+                client=admin_user, tenant=tenant)
             print(client_onboarding, "ClientOnboarding fetched or created")
 
             if client_onboarding:
@@ -75,7 +77,7 @@ def process_excel_file(file_path, admin_user_id, no_of_persons_onboard_by_client
                             no_of_asanas_created=0,
                             created_at=timezone.now(),
                             updated_at=timezone.now(),
-                            tenant_id=tenant_id
+                            tenant=tenant
                         )
                         trainer_count += 1
                         print(f"Trainer count updated: {trainer_count}")
@@ -86,7 +88,7 @@ def process_excel_file(file_path, admin_user_id, no_of_persons_onboard_by_client
                             added_by=admin_user,
                             created_at=timezone.now(),
                             updated_at=timezone.now(),
-                            tenant_id=tenant_id
+                            tenant=tenant
                         )
                         student_count += 1
                         print(f"Student count updated: {student_count}")

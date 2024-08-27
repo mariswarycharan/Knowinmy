@@ -16,8 +16,9 @@ urlpatterns = [
     path('', home, name='home'),
     path('register/', register, name='register'),
     path('register-organisation/', register_organisation, name='register_organization'),
+   
+    # path('<slug:slug>/login/', user_login, name='login_slug'),
     path('login/', user_login, name='login'),
-    path('<slug:slug>/login/', user_login, name='login_slug'),
     path('<slug:slug>/payment/', subscription_payment, name='subscription-payment'),
     path('<slug:slug>/razorpay/callback/', callback, name='callback'),
     path('<slug:slug>/logout/', log_out, name='logout'),

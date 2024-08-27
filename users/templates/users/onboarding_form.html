@@ -7,7 +7,7 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <!-- Onboarding users formset -->
-            <form method="post"id="onboard-user-form" action="{% url 'onboard-users-form' %}" class="p-4 border rounded shadow">
+            <form method="post"id="onboard-user-form" action="{% url 'onboard-users-form' slug=tenant.slug %}" class="p-4 border rounded shadow">
                 {% csrf_token %}
                 {{ formset.management_form }}
                 {% for form in formset %}
@@ -21,7 +21,7 @@
             </form>
 
             <!-- Back Button -->
-            <a href="{% url 'Trainer-approval' %}" class="btn btn-secondary btn-block mt-4">Back to Trainer Approval</a>
+            <a href="{% url 'Trainer-approval' slug=tenant.slug %}" class="btn btn-secondary btn-block mt-4">Back to Trainer Approval</a>
         </div>
     </div>
 

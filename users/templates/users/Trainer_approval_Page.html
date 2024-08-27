@@ -7,7 +7,7 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <!-- File upload form -->
-            <form method="post" id="course-creation-form" enctype="multipart/form-data" action="{% url 'Trainer-approval' %}" class="p-4 border rounded shadow">
+            <form method="post" id="course-creation-form" enctype="multipart/form-data" action="{% url 'Trainer-approval' slug=tenant.slug %}" class="p-4 border rounded shadow">
                 {% csrf_token %}
                 <div class="form-group">
                     <label for="excel_file" class="font-weight-bold">Choose Excel File</label>
@@ -18,7 +18,7 @@
             </form>
 
             <!-- Button to redirect to the onboarding page -->
-            <a href="{% url 'onboard-users-form' %}" class="btn btn-secondary btn-block mt-4">Onboard Users Manually</a>
+            <a href="{% url 'onboard-users-form' slug=tenant.slug %}" class="btn btn-secondary btn-block mt-4">Onboard Users Manually</a>
         </div>
     </div>
 

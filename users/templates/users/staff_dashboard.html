@@ -61,7 +61,7 @@
             <hr class="sidebar-divider my-0">
 
             <li class="nav-item active">
-                <a class="nav-link" href="{% url 'user-view-asana' slug=tenant.slug %}">
+                <a class="nav-link" href="{% url  'user-view-asana' slug=tenant.slug %}">
                     <i class="fas fa-fw fa-tachometer-alt"></i>
                     <span>Trained Courses </span>
                 </a>
@@ -73,7 +73,7 @@
             {% for group in request.user.groups.all %}
             {% if group.name == 'Client' %}
                 <li class="nav-item active">
-                    <a class="nav-link" href="{% url 'Trainer-approval' %}">
+                    <a class="nav-link" href="{% url 'Trainer-approval' slug=tenant.slug %}">
                         <i class="fas fa-fw fa-tachometer-alt"></i>
                         
                         <span>Client  Dashboard</span>
