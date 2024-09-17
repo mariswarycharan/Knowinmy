@@ -34,7 +34,7 @@ SECRET_KEY = 'django-insecure-2@d_u@j&$$o$l^0z_6p+y#^ewn1a)m#wy0#(0nkw@doy9x0v3p
 IS_PRODUCTION = os.environ.get('IS_PRODUCTION', False)
 DEBUG = not IS_PRODUCTION
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*','.vercel.app']
 
 
 # Application definition
